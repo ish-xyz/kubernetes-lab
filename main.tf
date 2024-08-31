@@ -1,17 +1,17 @@
-resource "aws_instance" "controllers" {
-  count             = var.controllers_count
-  ami               = var.ami
-  instance_type     = var.controllers_instance_type
-  user_data         = data.template_file.cloud_init_controllers[count.index].rendered
-  subnet_id         = var.subnet_id
-  key_name = var.key_name
+# resource "aws_instance" "controllers" {
+#   count             = var.controllers_count
+#   ami               = var.ami
+#   instance_type     = var.controllers_instance_type
+#   user_data         = data.template_file.cloud_init_controllers[count.index].rendered
+#   subnet_id         = var.subnet_id
+#   key_name = var.key_name
 
-  tags = {
-    Name = "controller-${count.index}-${var.cluster_name}"
-    Role = "controller"
-    Cluster = "${var.cluster_name}"
-  }
-}
+#   tags = {
+#     Name = "controller-${count.index}-${var.cluster_name}"
+#     Role = "controller"
+#     Cluster = "${var.cluster_name}"
+#   }
+# }
 
 data "template_file" "cloud_init_controllers" {
   count = var.controllers_count

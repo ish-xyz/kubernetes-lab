@@ -3,11 +3,7 @@
 
 resource "local_file" "config_file" {
   content  = templatefile("${path.module}/templates/certs-config/ca-nodes.conf.tftpl", {
-    nodes = [
-        for i in range(var.nodes_count) : {
-            name = "node-${i}-${var.cluster_name}"
-        }
-    ]
+    nodes = local.nodes
   })
   filename = "${path.module}/files/certs-config/ca-nodes.conf"
 }
@@ -20,7 +16,7 @@ resource "null_resource" "generate_certs" {
   depends_on = [local_file.config_file]
 
   provisioner "local-exec" {
-    command = "${path.module}/scripts/generate-certs.sh ${path.module}/files/certs ${path.module}/files/certs-config node-1 node-2 node-3"
+    command = "${path.module}/scripts/generate-certs.sh ${path.module}/files/certs ${path.module}/files/certs-config ${local.node_names_string}"
   }
 }
 
