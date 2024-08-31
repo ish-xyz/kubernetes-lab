@@ -35,7 +35,7 @@ gen_cert() {
 main() {
     certs_dir="$1"
     config_dir="$2"
-    nodes="$3"
+    nodes="${@: 3}"
 
     mkdir ${certs_dir} || true
 
@@ -50,9 +50,7 @@ main() {
     done
 
     ## Generate certificates for nodes
-
-
-
+    echo "${@: 3}"
     for cid in $(echo $nodes); do
         gen_cert $certs_dir "${config_dir}/ca-nodes.conf" $cid
     done

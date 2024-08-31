@@ -23,8 +23,14 @@ resource "local_file" "config_file" {
 }
 
 resource "null_resource" "generate_certs" {
+  triggers = {
+    always_run = timestamp()
+  }
+
+  depends_on = [local_file.config_file]
+
   provisioner "local-exec" {
-    command = "${path.module}/scripts/generate-certs.sh ${path.module}/files/certs ${path.module}/files/certs-config \"node-1 node-2 node-3\""
+    command = "${path.module}/scripts/generate-certs.sh ${path.module}/files/certs ${path.module}/files/certs-config node-1 node-2 node-3"
   }
 }
 
