@@ -7,24 +7,26 @@ users:
   lock_passwd: true
   ssh_authorized_keys:
     - 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCDLbwGSWj/Y0b9uoVqJzr0BNqAAMgcapiEO6CSSmCnaCWzjEbGxHmvnghsKHqo291H08UKlMSqRocVD3kj/vlqquregAaYTZeNg2ZY1kqDw49X8cVNjukggtH23BbRmXgSXuBaHQaN2XtL2pOnZTRhnedSyVCVVazzrGOuGELCxUd+HnADUIaIf1hD/WiKxNxMT4YqWmkmdxgyC0Fp4eeU/W+eCzmsZeGgxW9DG77e9te76p3wi5Hj/8oj/U8nwY78UhkP+mAuw+c4YjoADVskz3yCK2yRQPPOiF3s1lS1kM5qv/GLUsgGCpqgUJo16rziOBccn0AX+oGvzrGoiJd1'
+
 runcmd:
 - [mkdir, -p, -m, 0700, /var/lib/kubernetes/certs]
+- [mkdir, -p, -m, 0700, /etc/etcd/ssl]
+- [mkdir, -p, -m, 0700, /var/lib/etcd]
 
 write_files:
+# create certificates
 %{ for cert in jsondecode(certs_json) ~}
 - path: /var/lib/kubernetes/certs/${cert.name}
   owner: zero:zero
-  permissions: '0600'
+  permissions: '0644'
   defer: true
   encoding: b64
   content: ${cert.content}
 %{ endfor ~}
 
-
-
-
-
-#kubectl config set-cluster kubernetes-the-hard-way --certificate-authority=ca.crt --embed-certs=true --server=https://server.kubernetes.local:6443 --kubeconfig=node-1.kubeconfig
-#kubectl config set-credentials system:node:node-1 --client-certificate=node-1.crt --client-key=node-1.key --embed-certs=true --kubeconfig=node-1.kubeconfig
-#kubectl config set-context default --cluster=kubernetes-the-hard-way --user=system:node:node-1 --kubeconfig=node-1.kubeconfig
-#kubectl config use-context default --kubeconfig=node-1.kubeconfig
+- path: /etc/systemd/system/etcd.service
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${etcd_systemd_unit}
