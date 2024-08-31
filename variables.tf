@@ -16,7 +16,7 @@ variable "controllers_instance_type" {
 
 variable "cluster_name" {
     type = string
-    default = "mynewcluster" 
+    default = "mytestcluster" 
 }
 
 variable "subnet_id" {
@@ -27,4 +27,14 @@ variable "subnet_id" {
 variable "key_name" {
     type = string
     default = "capi-demo"
+}
+
+variable "controllers_count" {
+    type = number
+    default = 3
+}
+
+variable "nodes_count" {
+    type = number
+    default = 3
 }

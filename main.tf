@@ -1,34 +1,27 @@
-# resource "aws_instance" "controllers" {
-#   count             = 1
-#   ami               = var.ami
-#   instance_type     = var.controllers_instance_type
-#   user_data         = file("templates/cloud-init-controller.yaml")
-#   subnet_id         = var.subnet_id
-#   key_name = var.key_name
+resource "aws_instance" "controllers" {
+  count             = var.controllers_count
+  ami               = var.ami
+  instance_type     = var.controllers_instance_type
+  user_data         = data.template_file.cloud_init_controllers[count.index].rendered
+  subnet_id         = var.subnet_id
+  key_name = var.key_name
 
-#   tags = {
-#     Name = "controller-${var.cluster_name}-${count.index}"
-#     Role = "controller"
-#     Cluster = "${var.cluster_name}"
-#   }
-# }
-
-resource "local_file" "config_file" {
-  content  = templatefile("${path.module}/templates/certs-config/ca-nodes.conf.tftpl", {
-    nodes = [for instance in local.mock_instances : {
-      name = instance.tags["Name"]
-    }]
-  })
-  filename = "${path.module}/files/certs-config/ca-nodes.conf"
+  tags = {
+    Name = "controller-${count.index}-${var.cluster_name}"
+    Role = "controller"
+    Cluster = "${var.cluster_name}"
+  }
 }
 
-data "template_file" "controllers_cloud_init_config" {
-  template = file("${path.module}/templates/cloud-init/controller-config.yaml.tftpl")
+data "template_file" "cloud_init_controllers" {
+  count = var.controllers_count
+  template = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")
 
   depends_on = [null_resource.generate_certs]
   
   vars = {
-    certs_json = jsonencode([
+    instance_name = "controller-${count.index}-${var.cluster_name}"
+    kube_certs = jsonencode([
       {
         name    = "admin.crt"
         content = base64encode(data.local_file.admin_crt.content)
@@ -62,26 +55,17 @@ data "template_file" "controllers_cloud_init_config" {
         content = base64encode(data.local_file.service_accounts_key.content)
       }
     ])
+
+    etcd_certs = jsonencode([
+      {
+        name    = "ca.crt"
+        content = base64encode(data.local_file.ca_crt.content)
+      },
+      {
+        name    = "ca.key"
+        content = base64encode(data.local_file.ca_key.content)
+      }
+    ])
     etcd_systemd_unit = ""
   }
 }
-
-
-
-output "rendered" {
-  value = "${data.template_file.controllers_cloud_init_config.rendered}"
-}
-
-
-# resource "aws_instance" "nodes" {
-#   count         = 3
-#   ami           = var.ami
-#   instance_type = var.nodes_instance_type
-
-#   tags = {
-#     Name = "node-${var.cluster_name}-${count.index}"
-#     Role = "node"
-#     Cluster = "${var.cluster_name}"
-#   }
-# }
-
