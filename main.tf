@@ -24,12 +24,12 @@ resource "local_file" "config_file" {
 
 resource "null_resource" "generate_certs" {
   provisioner "local-exec" {
-    command = "${path.module}/generate-certs.sh"
+    command = "${path.module}/scripts/generate-certs.sh ${path.module}/files/certs ${path.module}/files/certs-config \"node-1 node-2 node-3\""
   }
 }
 
 data "template_file" "controllers_cloud_init_config" {
-  template = file("${path.module}/templates/cloud-init-controller.tftpl")
+  template = file("${path.module}/templates/cloud-init-controller.yaml.tftpl")
 
   depends_on = [null_resource.generate_certs]
   
