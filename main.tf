@@ -22,18 +22,6 @@ resource "local_file" "config_file" {
   filename = "${path.module}/files/ca-nodes.conf"
 }
 
-resource "null_resource" "generate_certs" {
-  triggers = {
-    always_run = timestamp()
-  }
-
-  depends_on = [local_file.config_file]
-
-  provisioner "local-exec" {
-    command = "${path.module}/scripts/generate-certs.sh ${path.module}/files/certs ${path.module}/files/certs-config node-1 node-2 node-3"
-  }
-}
-
 data "template_file" "controllers_cloud_init_config" {
   template = file("${path.module}/templates/cloud-init-controller.yaml.tftpl")
 
@@ -43,38 +31,29 @@ data "template_file" "controllers_cloud_init_config" {
     certs_json = jsonencode([
       {
         name    = "admin.crt"
-        content = base64encode(file("${path.module}/files/certs/admin.crt"))
+        content = base64encode(data.local_file.admin_crt.content)
       },
       {
         name    = "admin.csr"
-        content = base64encode(file("${path.module}/files/certs/admin.csr"))
+        content = base64encode(data.local_file.admin_csr.content)
       },
       {
         name    = "admin.key"
-        content = base64encode(file("${path.module}/files/certs/admin.key"))
+        content = base64encode(data.local_file.admin_key.content)
+      },
+      {
+        name    = "ca.crt"
+        content = base64encode(data.local_file.ca_crt.content)
+      },
+      {
+        name    = "ca.key"
+        content = base64encode(data.local_file.ca_key.content)
       },
     ])
   }
-    # admin_crt = ""
-    # admin_key = ""
-    # ca_crt = ""
-    # ca_key = ""
-    # kube_api_server_crt = ""
-    # kube_api_server_csr = ""
-    # kube_api_server_key = ""
-    # kube_controller_manager_crt = ""
-    # kube_controller_manager_csr = ""
-    # kube_controller_manager_key = ""
-    # kube_proxy_crt = ""
-    # kube_proxy_csr = ""
-    # kube_proxy_key = ""
-    # kube_scheduler_crt = ""
-    # kube_scheduler_csr = ""
-    # kube_scheduler_key = ""
-    # service_accounts_crt = ""
-    # service_accounts_csr = ""
-    # service_accounts_key = ""
 }
+
+
 
 output "rendered" {
   value = "${data.template_file.controllers_cloud_init_config.rendered}"
