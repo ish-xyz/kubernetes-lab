@@ -17,7 +17,7 @@ resource "local_file" "ca_ctrlplane_config_file" {
 
 resource "local_file" "ca_etcd_config_file" {
   content  = templatefile("${path.module}/templates/certs-config/ca-etcd.conf.tftpl", {
-    etcd_nodes = local.etcd_nodes
+    etcd_nodes_alt_names = local.etcd_nodes_alt_names
     cluster_name = var.cluster_name
   })
   filename = "${path.module}/files/certs-config/ca-etcd.conf"

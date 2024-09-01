@@ -39,6 +39,6 @@ locals {
         name = "controller-${i}-${var.cluster_name}"
     }
   ]
-  etcd_nodes_string = join(" ", [for node in local.etcd_nodes: node.name])
+  etcd_nodes_alt_names = join(", ", [for i, node in local.etcd_nodes : "DNS.${i + 1}:${node.name}"])
   etcd_certs_ids = "etcd-client etcd-peer"
 }
