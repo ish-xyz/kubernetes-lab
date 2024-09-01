@@ -17,7 +17,7 @@ data "template_file" "cloud_init_controllers" {
   count = var.controllers_count
   template = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")
 
-  depends_on = [null_resource.generate_certs]
+  depends_on = [null_resource.generate_ca, null_resource.generate_control_plane_certs, null_resource.generate_nodes_certs]
   
   vars = {
     instance_name = "controller-${count.index}-${var.cluster_name}"
@@ -55,17 +55,11 @@ data "template_file" "cloud_init_controllers" {
         content = base64encode(data.local_file.service_accounts_key.content)
       }
     ])
-
-    etcd_certs = jsonencode([
-      {
-        name    = "ca.crt"
-        content = base64encode(data.local_file.ca_crt.content)
-      },
-      {
-        name    = "ca.key"
-        content = base64encode(data.local_file.ca_key.content)
-      }
-    ])
     etcd_systemd_unit = ""
   }
+}
+
+resource "local_file" "tmp_cloud_init" {
+  content  = data.template_file.cloud_init_controllers[0].rendered
+  filename = "${path.module}/tmp-cloud-init.yaml"
 }

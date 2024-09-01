@@ -24,12 +24,3 @@ write_files:
   encoding: b64
   content: ${cert.content}
 %{ endfor ~}
-
-%{ for cert in jsondecode(etcd_certs) ~}
-- path: /etc/etcd/ssl/${cert.name}
-  owner: zero:zero
-  permissions: '0644'
-  defer: true
-  encoding: b64
-  content: ${cert.content}
-%{ endfor ~}

@@ -1,0 +1,41 @@
+##########################
+# etcd peers certificate #
+##########################
+[etcd-peer]
+distinguished_name = etcd_peer_distinguished_name
+prompt             = no
+req_extensions     = etcd_peer_req_extensions
+
+[etcd_peer_req_extensions]
+basicConstraints = CA:FALSE
+extendedKeyUsage = clientAuth
+keyUsage         = critical, digitalSignature, keyEncipherment
+subjectAltName   = DNS:localhost,IP:127.0.0.1
+
+[etcd_peer_distinguished_name]
+CN = etcd-peer
+OU = ${cluster_name}
+C  = UK
+ST = London
+L  = London
+
+###########################
+# etcd client certificate #
+###########################
+[etcd-client]
+distinguished_name = etcd_client_distinguished_name
+prompt             = no
+req_extensions     = etcd_client_req_extensions
+
+[etcd_client_req_extensions]
+basicConstraints = CA:FALSE
+extendedKeyUsage = clientAuth
+keyUsage         = critical, digitalSignature, keyEncipherment
+subjectAltName   = DNS:localhost,IP:127.0.0.1
+
+[etcd_client_distinguished_name]
+CN = etcd-client
+OU = ${cluster_name}
+C  = UK
+ST = London
+L  = London

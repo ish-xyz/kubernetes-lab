@@ -34,27 +34,25 @@ gen_cert() {
 
 main() {
     certs_dir="$1"
-    config_dir="$2"
-    nodes="${@: 3}"
+    config_file="$2"
+    cids="${@: 3}"
 
     mkdir ${certs_dir} || true
 
-    echo "[$(date +%s)] [INFO] - generating ca configs"
-    openssl genrsa -out "${certs_dir}/ca.key" 4096
-    openssl req -x509 -new -sha512 -noenc -key "${certs_dir}/ca.key" -days 3653 -config "${config_dir}/ca-controllers.conf" -out "${certs_dir}/ca.crt"
-
-    ## Generate control plane related certificates
-    control_plane_certs=("admin" "kube-proxy" "kube-scheduler" "kube-controller-manager" "kube-api-server" "service-accounts")
-    for cid in ${control_plane_certs[@]}; do
-        gen_cert $certs_dir "${config_dir}/ca-controllers.conf" $cid
-    done
-
-    ## Generate certificates for nodes
-    echo "${@: 3}"
-    for cid in $(echo $nodes); do
-        gen_cert $certs_dir "${config_dir}/ca-nodes.conf" $cid
+    for cid in ${cids[@]}; do
+        if [[ ${cid} == "ca" ]]; then
+        #TODO: IF CA is regenerated, regen everything else too
+            echo "[$(date +%s)] [INFO] - generating ca configs"
+            openssl genrsa -out "${certs_dir}/${cid}.key" 4096
+            openssl req -x509 -new -sha512 -noenc -key "${certs_dir}/${cid}.key" -days 3653 -config "${config_file}" -out "${certs_dir}/${cid}.crt"
+        else
+            echo "[$(date +%s)] [INFO] - generating tls config for ${cid}"
+            gen_cert $certs_dir $config_file $cid
+        fi
     done
 }
+
+
 
 check_openssl_version
 main $@

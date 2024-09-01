@@ -33,3 +33,16 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
+
+
+
+
+
+
+
+
+/usr/local/bin/etcd --name etcd1 --cert-file=/files/certs/controller-0-mytestcluster.crt --key-file=/files/certs/controller-0-mytestcluster.key \
+                    --peer-cert-file=/files/certs/controller-0-mytestcluster.crt --peer-key-file=/files/certs/controller-0-mytestcluster.key \
+                    --trusted-ca-file=/files/certs/ca.crt --peer-trusted-ca-file=/files/certs/ca.crt --peer-client-cert-auth --client-cert-auth \
+                    --initial-advertise-peer-urls https://${HOSTNAME}:2380 --listen-peer-urls https://0.0.0.0:2380 --listen-client-urls https://0.0.0.0:2379 \
+                    --advertise-client-urls https://${HOSTNAME}:2379 --initial-cluster-token abba --initial-cluster etcd1=https://etcd1:2380,etcd2=https://etcd2:2380,etcd3=https://etcd3:2380 --initial-cluster-state new --data-dir=/var/lib/etcd
