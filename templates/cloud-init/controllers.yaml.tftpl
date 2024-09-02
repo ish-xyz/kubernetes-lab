@@ -32,3 +32,14 @@ write_files:
   encoding: b64
   content: ${cert.content}
 %{ endfor ~}
+
+- path: /etc/systemd/resolved.conf
+  owner: zero:zero
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${dns_config}
+
+# runcmd:
+# - [cp, -Ra, /var/lib/kubernetes/certs/ca.crt, /etc/etcd/ssl/ca.crt]
+# - [cp, -Ra, /var/lib/kubernetes/certs/ca.key, /etc/etcd/ssl/ca.key]

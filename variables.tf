@@ -13,6 +13,11 @@ variable "route53_zone_id" {
     default = "Z0254661OBYGIWIKHFI3"
 }
 
+variable "aws_region" {
+    type = string
+    default = "eu-west-1"
+}
+
 variable "ami" {
     type = string
     default = "ami-03cc8375791cb8bcf"
