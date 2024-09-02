@@ -8,6 +8,11 @@ variable "cluster_name" {
     default = "mytestcluster" 
 }
 
+variable "route53_zone_id" {
+    type = string
+    default = "Z0254661OBYGIWIKHFI3"
+}
+
 variable "ami" {
     type = string
     default = "ami-03cc8375791cb8bcf"

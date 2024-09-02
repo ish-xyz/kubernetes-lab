@@ -1,8 +1,8 @@
 resource "aws_instance" "controllers" {
-  for_each          = local.controllers_set
+  for_each          = toset(local.controllers_set)
   ami               = var.ami
   instance_type     = var.controllers_instance_type
-  user_data         = data.template_file.cloud_init_controllers[count.index].rendered
+  user_data         = data.template_file.cloud_init_controllers[each.key].rendered
   subnet_id         = var.subnet_id
   key_name = var.key_name
 
@@ -14,14 +14,14 @@ resource "aws_instance" "controllers" {
   }
 }
 
-resource "aws_route53_record" "www" {
-  for_each  = aws_instance.controllers
-  zone_id   = aws_route53_zone.primary.zone_id
-  name      = each.tags["FQDN"]
-  type      = "A"
-  ttl       = 300
-  records   = [each.private_ip]
-}
+# resource "aws_route53_record" "www" {
+#   for_each  = aws_instance.controllers
+#   zone_id   = var.route53_zone_id
+#   name      = each.value.tags["FQDN"]
+#   type      = "A"
+#   ttl       = 300
+#   records   = [each.value.private_ip]
+# }
 
 data "template_file" "etcd_systemd_unit" {
     template = file("${path.module}/templates/systemd-units/etcd.service.tftpl")
@@ -32,7 +32,7 @@ data "template_file" "etcd_systemd_unit" {
 }
 
 data "template_file" "cloud_init_controllers" {
-  for_each  = local.controllers_set
+  for_each  = toset(local.controllers_set)
   template  = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")
   
   vars = {
@@ -100,10 +100,10 @@ data "template_file" "cloud_init_controllers" {
   }
 }
 
-resource "local_file" "tmp_cloud_init" {
-  content  = data.template_file.cloud_init_controllers[0].rendered
-  filename = "${path.module}/tmp-cloud-init.yaml"
-}
+# resource "local_file" "tmp_cloud_init" {
+#   content  = data.template_file.cloud_init_controllers[local.controllers_set[0]].rendered
+#   filename = "${path.module}/tmp-cloud-init.yaml"
+# }
 
 resource "local_file" "tmp_etcd_service" {
   content  = data.template_file.etcd_systemd_unit.rendered
