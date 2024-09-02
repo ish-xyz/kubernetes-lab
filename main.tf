@@ -1,10 +1,11 @@
 resource "aws_instance" "controllers" {
-  for_each          = toset(local.controllers_set)
-  ami               = var.ami
-  instance_type     = var.controllers_instance_type
-  user_data_base64  = base64gzip(data.template_file.cloud_init_controllers[each.key].rendered)
-  subnet_id         = var.subnet_id
-  key_name          = var.key_name
+  for_each                    = toset(local.controllers_set)
+  ami                         = var.ami
+  instance_type               = var.controllers_instance_type
+  user_data_base64            = base64gzip(data.template_file.cloud_init_controllers[each.key].rendered)
+  user_data_replace_on_change = true
+  subnet_id                   = var.subnet_id
+  key_name                    = var.key_name
 
   tags = {
     Name = each.value
@@ -35,14 +36,19 @@ data "template_file" "etcd_systemd_unit" {
     }
 }
 
-data "template_file" "resolved_config" {
-    template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
-    vars = {
-      domain = var.domain
-      aws_region = var.aws_region
-      dns_list = join(" ", [for _, ns in data.aws_route53_zone.compute_zone.name_servers: ns])
-    }
+data "dns_a_record_set" "name_servers" {
+  for_each = toset(data.aws_route53_zone.compute_zone.name_servers)
+  host = each.value
 }
+
+# data "template_file" "resolved_config" {
+#     template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
+#     vars = {
+#       domain = var.domain
+#       aws_region = var.aws_region
+#       dns_list = toset([for _, ns in data.dns_a_record_set.name_servers: join(" ", [for _, ip in ns.addrs: ip])])
+#     }
+# }
 
 data "template_file" "cloud_init_controllers" {
   for_each  = toset(local.controllers_set)
@@ -50,7 +56,8 @@ data "template_file" "cloud_init_controllers" {
   
   vars = {
     fqdn = "${each.value}.${var.domain}"
-    dns_config = data.template_file.resolved_config.rendered
+    domain = var.domain
+    nameservers_list = toset([for _, ns in data.dns_a_record_set.name_servers: [for _, ip in ns.addrs: ip]])
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
