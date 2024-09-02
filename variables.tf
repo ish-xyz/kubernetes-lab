@@ -1,3 +1,13 @@
+variable "domain" {
+    type = string
+    default = "compute.zone"
+}
+
+variable "cluster_name" {
+    type = string
+    default = "mytestcluster" 
+}
+
 variable "ami" {
     type = string
     default = "ami-03cc8375791cb8bcf"
@@ -12,11 +22,6 @@ variable "nodes_instance_type" {
 variable "controllers_instance_type" {
     type = string
     default = "t3.micro" 
-}
-
-variable "cluster_name" {
-    type = string
-    default = "mytestcluster" 
 }
 
 variable "subnet_id" {

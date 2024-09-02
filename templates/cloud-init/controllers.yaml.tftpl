@@ -1,5 +1,5 @@
 #cloud-config
-fqdn: ${instance_name}
+fqdn: ${fqdn}
 users:
 - name: zero
   gecos: zero
@@ -18,6 +18,14 @@ write_files:
 # create certificates
 %{ for cert in jsondecode(kube_certs) ~}
 - path: /var/lib/kubernetes/certs/${cert.name}
+  owner: zero:zero
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${cert.content}
+%{ endfor ~}
+%{ for cert in jsondecode(etcd_certs) ~}
+- path: /etc/etcd/ssl/${cert.name}
   owner: zero:zero
   permissions: '0644'
   defer: true

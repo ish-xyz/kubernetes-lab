@@ -1,65 +1,111 @@
-# resource "aws_instance" "controllers" {
-#   count             = var.controllers_count
-#   ami               = var.ami
-#   instance_type     = var.controllers_instance_type
-#   user_data         = data.template_file.cloud_init_controllers[count.index].rendered
-#   subnet_id         = var.subnet_id
-#   key_name = var.key_name
+resource "aws_instance" "controllers" {
+  for_each          = local.controllers_set
+  ami               = var.ami
+  instance_type     = var.controllers_instance_type
+  user_data         = data.template_file.cloud_init_controllers[count.index].rendered
+  subnet_id         = var.subnet_id
+  key_name = var.key_name
 
-#   tags = {
-#     Name = "controller-${count.index}-${var.cluster_name}"
-#     Role = "controller"
-#     Cluster = "${var.cluster_name}"
-#   }
-# }
+  tags = {
+    Name = each.value
+    FQDN = "${each.value}.${var.domain}"
+    Role = "controller"
+    Cluster = "${var.cluster_name}"
+  }
+}
+
+resource "aws_route53_record" "www" {
+  for_each  = aws_instance.controllers
+  zone_id   = aws_route53_zone.primary.zone_id
+  name      = each.tags["FQDN"]
+  type      = "A"
+  ttl       = 300
+  records   = [each.private_ip]
+}
+
+data "template_file" "etcd_systemd_unit" {
+    template = file("${path.module}/templates/systemd-units/etcd.service.tftpl")
+    vars = {
+      etcd_cluster_token = "test"
+      etcd_cluster_members = local.etcd_cluster_members
+    }
+}
 
 data "template_file" "cloud_init_controllers" {
-  count = var.controllers_count
-  template = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")
-
-  depends_on = [null_resource.generate_ca, null_resource.generate_control_plane_certs, null_resource.generate_nodes_certs]
+  for_each  = local.controllers_set
+  template  = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")
   
   vars = {
-    instance_name = "controller-${count.index}-${var.cluster_name}"
+    fqdn = "${each.value}.${var.domain}"
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
-        content = base64encode(data.local_file.admin_crt.content)
+        content = base64encode(module.admin.cert)
       },
       {
         name    = "admin.key"
-        content = base64encode(data.local_file.admin_key.content)
+        content = base64encode(module.admin.key)
       },
       {
         name    = "ca.crt"
-        content = base64encode(data.local_file.ca_crt.content)
+        content = base64encode(module.ca.ca_cert)
       },
       {
         name    = "ca.key"
-        content = base64encode(data.local_file.ca_key.content)
+        content = base64encode(module.ca.ca_key)
       },
       {
         name    = "kube-api-server.crt"
-        content = base64encode(data.local_file.kube_api_server_crt.content)
+        content = base64encode(module.kube-api-server.cert)
       },
       {
         name    = "kube-api-server.key"
-        content = base64encode(data.local_file.kube_api_server_key.content)
+        content = base64encode(module.kube-api-server.key)
       },
       {
         name    = "service-accounts.crt"
-        content = base64encode(data.local_file.service_accounts_crt.content)
+        content = base64encode(module.service-accounts.cert)
       },
       {
         name    = "service-accounts.key"
-        content = base64encode(data.local_file.service_accounts_key.content)
+        content = base64encode(module.service-accounts.key)
       }
     ])
-    etcd_systemd_unit = ""
+    etcd_certs = jsonencode([
+      {
+        name    = "ca.crt"
+        content = base64encode(module.ca.ca_cert)
+      },
+      {
+        name    = "ca.key"
+        content = base64encode(module.ca.ca_key)
+      },
+      {
+        name    = "etcd-client.crt"
+        content = base64encode(module.ca.ca_cert)
+      },
+      {
+        name    = "etcd-client.key"
+        content = base64encode(module.ca.ca_key)
+      },
+      {
+        name    = "etcd-peer.crt"
+        content = base64encode(module.ca.ca_cert)
+      },
+      {
+        name    = "etcd-peer.key"
+        content = base64encode(module.ca.ca_key)
+      },
+    ])
   }
 }
 
 resource "local_file" "tmp_cloud_init" {
   content  = data.template_file.cloud_init_controllers[0].rendered
   filename = "${path.module}/tmp-cloud-init.yaml"
+}
+
+resource "local_file" "tmp_etcd_service" {
+  content  = data.template_file.etcd_systemd_unit.rendered
+  filename = "${path.module}/tmp-etcd.service"
 }
