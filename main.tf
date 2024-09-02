@@ -41,14 +41,14 @@ data "dns_a_record_set" "name_servers" {
   host = each.value
 }
 
-# data "template_file" "resolved_config" {
-#     template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
-#     vars = {
-#       domain = var.domain
-#       aws_region = var.aws_region
-#       dns_list = toset([for _, ns in data.dns_a_record_set.name_servers: join(" ", [for _, ip in ns.addrs: ip])])
-#     }
-# }
+data "template_file" "resolved_config" {
+    template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
+    vars = {
+      domain = var.domain
+      aws_region = var.aws_region
+      nameservers_list = join(" ", [for _, ns in data.dns_a_record_set.name_servers: join(" ", [for _, ip in ns.addrs: ip])])
+    }
+}
 
 data "template_file" "cloud_init_controllers" {
   for_each  = toset(local.controllers_set)
@@ -57,7 +57,8 @@ data "template_file" "cloud_init_controllers" {
   vars = {
     fqdn = "${each.value}.${var.domain}"
     domain = var.domain
-    nameservers_list = toset([for _, ns in data.dns_a_record_set.name_servers: [for _, ip in ns.addrs: ip]])
+    dns_config = base64encode(data.template_file.resolved_config.rendered)
+    etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit)
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
@@ -95,28 +96,28 @@ data "template_file" "cloud_init_controllers" {
     etcd_certs = jsonencode([
       {
         name    = "etcd-client.crt"
-        content = base64encode(module.ca.ca_cert)
+        content = base64encode(module.etcd-client.cert)
       },
       {
         name    = "etcd-client.key"
-        content = base64encode(module.ca.ca_key)
+        content = base64encode(module.etcd-client.key)
       },
       {
         name    = "etcd-peer.crt"
-        content = base64encode(module.ca.ca_cert)
+        content = base64encode(module.etcd-peer.cert)
       },
       {
         name    = "etcd-peer.key"
-        content = base64encode(module.ca.ca_key)
+        content = base64encode(module.etcd-peer.key)
       },
     ])
   }
 }
 
-# resource "local_file" "tmp_cloud_init" {
-#   content  = data.template_file.cloud_init_controllers[local.controllers_set[0]].rendered
-#   filename = "${path.module}/tmp-cloud-init.yaml"
-# }
+resource "local_file" "tmp_cloud_init" {
+  content  = data.template_file.cloud_init_controllers[local.controllers_set[0]].rendered
+  filename = "${path.module}/tmp-cloud-init.yaml"
+}
 
 resource "local_file" "tmp_etcd_service" {
   content  = data.template_file.etcd_systemd_unit.rendered

@@ -9,19 +9,6 @@ users:
   ssh_authorized_keys:
     - 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCDLbwGSWj/Y0b9uoVqJzr0BNqAAMgcapiEO6CSSmCnaCWzjEbGxHmvnghsKHqo291H08UKlMSqRocVD3kj/vlqquregAaYTZeNg2ZY1kqDw49X8cVNjukggtH23BbRmXgSXuBaHQaN2XtL2pOnZTRhnedSyVCVVazzrGOuGELCxUd+HnADUIaIf1hD/WiKxNxMT4YqWmkmdxgyC0Fp4eeU/W+eCzmsZeGgxW9DG77e9te76p3wi5Hj/8oj/U8nwY78UhkP+mAuw+c4YjoADVskz3yCK2yRQPPOiF3s1lS1kM5qv/GLUsgGCpqgUJo16rziOBccn0AX+oGvzrGoiJd1'
 
-resolv_conf:
-  nameservers:
-  %{ for ns in nameservers_list) ~}
-  - ${ns}
-  %{ endfor ~}
-  searchdomains:
-    - ${aws_region}.compute.internal
-    - ${domain}
-  domain: ${domain}
-  options:
-    rotate: true
-    timeout: 1
-
 runcmd:
 - [mkdir, -p, -m, 0700, /var/lib/kubernetes/certs]
 - [mkdir, -p, -m, 0700, /etc/etcd/ssl]
@@ -46,6 +33,23 @@ write_files:
   content: ${cert.content}
 %{ endfor ~}
 
+- path: /etc/systemd/resolved.conf
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${dns_config}
+
+- path: /etc/systemd/system/etcd.service
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${etcd_systemd_unit}
+
 runcmd:
 - [cp, -Ra, /var/lib/kubernetes/certs/ca.crt, /etc/etcd/ssl/ca.crt]
 - [cp, -Ra, /var/lib/kubernetes/certs/ca.key, /etc/etcd/ssl/ca.key]
+- [systemctl, restart, systemd-resolved]
+- [systemctl, enable, etcd.service]
+- [systemctl, start, etcd.service]
