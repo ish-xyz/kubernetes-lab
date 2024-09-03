@@ -36,9 +36,11 @@ resource "aws_route53_record" "www" {
 }
 
 data "template_file" "etcd_systemd_unit" {
+    for_each = toset(local.controllers_set)
     template = file("${path.module}/templates/os-config/etcd.service.tftpl")
     vars = {
       etcd_cluster_token = "test" # todo change token
+      etcd_name = each.value
       etcd_cluster_members = local.etcd_cluster_members
     }
 }
@@ -65,7 +67,9 @@ data "template_file" "cloud_init_controllers" {
     fqdn = "${each.value}.${var.domain}"
     domain = var.domain
     dns_config = base64encode(data.template_file.resolved_config.rendered)
-    etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit.rendered)
+    etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit[each.key].rendered)
+    etcd_full_version = var.etcd_full_version
+    etcd_version = var.etcd_version
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
@@ -101,6 +105,14 @@ data "template_file" "cloud_init_controllers" {
       }
     ])
     etcd_certs = jsonencode([
+      {
+        name    = "ca.crt"
+        content = base64encode(module.ca.ca_cert)
+      },
+      {
+        name    = "ca.key"
+        content = base64encode(module.ca.ca_key)
+      },
       {
         name    = "etcd-client.crt"
         content = base64encode(module.etcd-client.cert)
@@ -141,6 +153,6 @@ resource "local_file" "tmp_cloud_init" {
 }
 
 resource "local_file" "tmp_etcd_service" {
-  content  = data.template_file.etcd_systemd_unit.rendered
+  content  = data.template_file.etcd_systemd_unit[local.controllers_set[0]].rendered
   filename = "${path.module}/tmp-etcd.service"
 }

@@ -8,7 +8,7 @@ Wants=network-online.target
 User=etcd
 Type=notify
 ExecStart=/usr/local/bin/etcd \
-    --name $${HOSTNAME} \
+    --name ${etcd_name} \
     --data-dir=/var/lib/etcd \
     --cert-file=/etc/etcd/ssl/etcd-client.crt \
     --key-file=/etc/etcd/ssl/etcd-client.key \
@@ -17,10 +17,10 @@ ExecStart=/usr/local/bin/etcd \
     --trusted-ca-file=/etc/etcd/ssl/ca.crt \
     --peer-trusted-ca-file=/etc/etcd/ssl/ca.crt \
     --peer-client-cert-auth --client-cert-auth \
-    --initial-advertise-peer-urls https://$${HOSTNAME}:2380 \
+    --initial-advertise-peer-urls https://${etcd_name}:2380 \
     --listen-peer-urls https://0.0.0.0:2380 \
-    --listen-client-urls https://0.0.0.0:2379 \
-    --advertise-client-urls https://$${HOSTNAME}:2379 \
+    --listen-client-urls 'https://0.0.0.0:2379,https://0.0.0.0:4001' \
+    --advertise-client-urls 'https://0.0.0.0:2379,https://0.0.0.0:4001' \
     --initial-cluster ${etcd_cluster_members} \
     --initial-cluster-token ${etcd_cluster_token} \
     --initial-cluster-state new 

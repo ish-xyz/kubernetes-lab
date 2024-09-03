@@ -8,7 +8,7 @@ Wants=network-online.target
 User=etcd
 Type=notify
 ExecStart=/usr/local/bin/etcd \
-    --name ${HOSTNAME} \
+    --name controller-0-mytestcluster \
     --data-dir=/var/lib/etcd \
     --cert-file=/etc/etcd/ssl/etcd-client.crt \
     --key-file=/etc/etcd/ssl/etcd-client.key \
@@ -17,10 +17,10 @@ ExecStart=/usr/local/bin/etcd \
     --trusted-ca-file=/etc/etcd/ssl/ca.crt \
     --peer-trusted-ca-file=/etc/etcd/ssl/ca.crt \
     --peer-client-cert-auth --client-cert-auth \
-    --initial-advertise-peer-urls https://${HOSTNAME}:2380 \
+    --initial-advertise-peer-urls https://controller-0-mytestcluster:2380 \
     --listen-peer-urls https://0.0.0.0:2380 \
-    --listen-client-urls https://0.0.0.0:2379 \
-    --advertise-client-urls https://${HOSTNAME}:2379 \
+    --listen-client-urls 'https://0.0.0.0:2379,https://0.0.0.0:4001' \
+    --advertise-client-urls 'https://0.0.0.0:2379,https://0.0.0.0:4001' \
     --initial-cluster controller-0-mytestcluster=https://controller-0-mytestcluster:2380,controller-1-mytestcluster=https://controller-1-mytestcluster:2380,controller-2-mytestcluster=https://controller-2-mytestcluster:2380 \
     --initial-cluster-token test \
     --initial-cluster-state new 

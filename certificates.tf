@@ -123,7 +123,7 @@ module "etcd-peer" {
     L		        = "London"
 
     ip_addresses = ["127.0.0.1"]
-    dns_names = local.etcd_nodes_fqdns
+    dns_names = local.etcd_nodes
 
     validity_period	= 8760
 
@@ -145,7 +145,7 @@ module "etcd-client" {
     L		        = "London"
 
     ip_addresses = ["127.0.0.1"]
-    dns_names = local.etcd_nodes_fqdns
+    dns_names = local.etcd_nodes
 
     validity_period	= 8760
 

@@ -8,11 +8,10 @@ users:
   lock_passwd: true
   ssh_authorized_keys:
     - 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCDLbwGSWj/Y0b9uoVqJzr0BNqAAMgcapiEO6CSSmCnaCWzjEbGxHmvnghsKHqo291H08UKlMSqRocVD3kj/vlqquregAaYTZeNg2ZY1kqDw49X8cVNjukggtH23BbRmXgSXuBaHQaN2XtL2pOnZTRhnedSyVCVVazzrGOuGELCxUd+HnADUIaIf1hD/WiKxNxMT4YqWmkmdxgyC0Fp4eeU/W+eCzmsZeGgxW9DG77e9te76p3wi5Hj/8oj/U8nwY78UhkP+mAuw+c4YjoADVskz3yCK2yRQPPOiF3s1lS1kM5qv/GLUsgGCpqgUJo16rziOBccn0AX+oGvzrGoiJd1'
-
-runcmd:
-- [mkdir, -p, -m, 0700, /var/lib/kubernetes/certs]
-- [mkdir, -p, -m, 0700, /etc/etcd/ssl]
-- [mkdir, -p, -m, 0700, /var/lib/etcd]
+- name: etcd
+  gecos: etcd
+  shell: /usr/sbin/nologin
+  lock_passwd: true
 
 write_files:
 # create certificates
@@ -26,7 +25,7 @@ write_files:
 %{ endfor ~}
 %{ for cert in jsondecode(etcd_certs) ~}
 - path: /etc/etcd/ssl/${cert.name}
-  owner: zero:zero
+  owner: etcd:etcd
   permissions: '0644'
   defer: true
   encoding: b64
@@ -47,6 +46,13 @@ write_files:
   encoding: b64
   content: ${etcd_systemd_unit}
 
+- path: /var/lib/etcd/.touch
+  owner: etcd:etcd
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: "MQo="
+
 - path: /custom-cloud-init-done
   owner: root:root
   permissions: '0644'
@@ -55,10 +61,11 @@ write_files:
   content: "MQo="
 
 runcmd:
-- [cp, -Ra, /var/lib/kubernetes/certs/ca.crt, /etc/etcd/ssl/ca.crt]
-- [cp, -Ra, /var/lib/kubernetes/certs/ca.key, /etc/etcd/ssl/ca.key]
-- [curl, -o /tmp/${etcd_full_version}.tar.gz, -L, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
-- [tar, -xvf, /tmp/${etcd_full_version}.tar.gz]
+- [curl, -o, /tmp/${etcd_full_version}.tar.gz, -L, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
+- [tar, -xvf, /tmp/${etcd_full_version}.tar.gz, -C, /tmp]
+- [mv, /tmp/${etcd_full_version}/etcd, /usr/local/bin/]
+- [mv, /tmp/${etcd_full_version}/etcdctl, /usr/local/bin/]
+- [mv, /tmp/${etcd_full_version}/etcdutl, /usr/local/bin/]
 - [systemctl, restart, systemd-resolved]
 - [systemctl, enable, etcd.service]
 - [systemctl, start, etcd.service]

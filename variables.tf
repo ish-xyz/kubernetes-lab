@@ -15,7 +15,7 @@ variable "etcd_full_version" {
 
 variable "etcd_version" {
     type = string
-    default = "etcd-v3.5.15"
+    default = "v3.5.15"
 }
 
 variable "route53_zone_id" {
@@ -36,12 +36,12 @@ variable "ami" {
 
 variable "nodes_instance_type" {
     type = string
-    default = "t3.micro" 
+    default = "t3.medium" 
 }
 
 variable "controllers_instance_type" {
     type = string
-    default = "t3.micro" 
+    default = "t3.medium" 
 }
 
 variable "subnet_id" {
