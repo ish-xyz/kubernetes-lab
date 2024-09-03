@@ -8,6 +8,16 @@ variable "cluster_name" {
     default = "mytestcluster" 
 }
 
+variable "etcd_full_version" {
+    type = string
+    default = "etcd-v3.5.15-linux-amd64"
+}
+
+variable "etcd_version" {
+    type = string
+    default = "etcd-v3.5.15"
+}
+
 variable "route53_zone_id" {
     type = string
     default = "Z0254661OBYGIWIKHFI3"

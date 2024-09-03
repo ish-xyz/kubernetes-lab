@@ -47,9 +47,18 @@ write_files:
   encoding: b64
   content: ${etcd_systemd_unit}
 
+- path: /custom-cloud-init-done
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: "MQo="
+
 runcmd:
 - [cp, -Ra, /var/lib/kubernetes/certs/ca.crt, /etc/etcd/ssl/ca.crt]
 - [cp, -Ra, /var/lib/kubernetes/certs/ca.key, /etc/etcd/ssl/ca.key]
+- [curl, -o /tmp/${etcd_full_version}.tar.gz, -L, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
+- [tar, -xvf, /tmp/${etcd_full_version}.tar.gz]
 - [systemctl, restart, systemd-resolved]
 - [systemctl, enable, etcd.service]
 - [systemctl, start, etcd.service]

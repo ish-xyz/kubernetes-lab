@@ -2,11 +2,18 @@ resource "aws_instance" "controllers" {
   for_each                    = toset(local.controllers_set)
   ami                         = var.ami
   instance_type               = var.controllers_instance_type
-  user_data_base64            = base64gzip(data.template_file.cloud_init_controllers[each.key].rendered)
-  user_data_replace_on_change = true
   subnet_id                   = var.subnet_id
   key_name                    = var.key_name
-
+  iam_instance_profile        = aws_iam_instance_profile.kube_controllers_profile.name
+  user_data_replace_on_change = true
+  user_data = <<-EOF
+              #!/bin/bash
+              set -euo pipefail
+              snap install aws-cli --classic
+              cloud_config_url=$(aws s3 presign s3://${aws_s3_bucket.config_bucket.bucket}/${var.cluster_name}/${each.value}-config.yaml --expires-in 3600)
+              curl -L -o /etc/cloud/cloud.cfg.d/custom.cfg $cloud_config_url
+              [[ ! -f /custom-cloud-init-done ]] && cloud-init clean --logs --reboot
+              EOF
   tags = {
     Name = each.value
     FQDN = "${each.value}.${var.domain}"
@@ -31,7 +38,7 @@ resource "aws_route53_record" "www" {
 data "template_file" "etcd_systemd_unit" {
     template = file("${path.module}/templates/os-config/etcd.service.tftpl")
     vars = {
-      etcd_cluster_token = "test"
+      etcd_cluster_token = "test" # todo change token
       etcd_cluster_members = local.etcd_cluster_members
     }
 }
@@ -58,7 +65,7 @@ data "template_file" "cloud_init_controllers" {
     fqdn = "${each.value}.${var.domain}"
     domain = var.domain
     dns_config = base64encode(data.template_file.resolved_config.rendered)
-    etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit)
+    etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit.rendered)
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
@@ -112,6 +119,20 @@ data "template_file" "cloud_init_controllers" {
       },
     ])
   }
+}
+
+# Create S3 bucket
+resource "aws_s3_bucket" "config_bucket" {
+  bucket = "cloud-init-configurations"
+  force_destroy = true
+}
+
+# Upload cloud-init config to S3
+resource "aws_s3_object" "controllers_cloud_init_config" {
+  for_each = toset(local.controllers_set)
+  bucket = aws_s3_bucket.config_bucket.id
+  key    = "${var.cluster_name}/${each.value}-config.yaml"
+  content = data.template_file.cloud_init_controllers[each.key].rendered
 }
 
 resource "local_file" "tmp_cloud_init" {
