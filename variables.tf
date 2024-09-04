@@ -8,6 +8,16 @@ variable "cluster_name" {
     default = "mytestcluster" 
 }
 
+variable "pod_cidr" {
+    type = string
+    default = "10.200.0.0/16"
+}
+
+variable "service_cidr" {
+    type = string
+    default = "10.32.0.0/24"
+}
+
 variable "etcd_full_version" {
     type = string
     default = "etcd-v3.5.15-linux-amd64"

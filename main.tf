@@ -37,7 +37,6 @@ resource "aws_s3_object" "controllers_cloud_init_config" {
   content = data.template_file.cloud_init_controllers[each.key].rendered
 }
 
-
 # DNS Config
 data "aws_route53_zone" "compute_zone" {
   zone_id      = var.route53_zone_id
@@ -82,27 +81,27 @@ data "template_file" "etcd_systemd_unit" {
 data "template_file" "kube_apiserver_systemd_unit" {
     template = file("${path.module}/templates/os-config/service-kube-apiserver.tftpl")
     vars = {
-      service_cidr="10.32.0.0/24"
+      service_cidr= var.service_cidr
       node_ports_range = "30000-32767"
-      kube_certs_dir = "/etc/kubernetes/ssl"
-      kube_config_dir = "/etc/kubernetes"
+      kube_certs_dir = local.kube_certs_dir
+      kube_config_dir = local.kube_config_dir
     }
 }
 
 data "template_file" "kube_controller_manager_systemd_unit" {
     template = file("${path.module}/templates/os-config/service-kube-controller-manager.tftpl")
     vars = {
-      pod_cidr = "10.200.0.0/16"
-      service_cidr = "10.32.0.0/24"
-      kube_certs_dir = "/etc/kubernetes/ssl"
-      kube_config_dir = "/etc/kubernetes"
+      pod_cidr = var.pod_cidr
+      service_cidr = var.service_cidr
+      kube_certs_dir = local.kube_certs_dir
+      kube_config_dir = local.kube_config_dir
     }
 }
  
 data "template_file" "kube_scheduler_systemd_unit" {
     template = file("${path.module}/templates/os-config/service-kube-scheduler.tftpl")
     vars = {
-      kube_config_dir = "/etc/kubernetes"
+      kube_config_dir = local.kube_config_dir
     }
 }
 
@@ -112,8 +111,8 @@ data "template_file" "kube_scheduler_systemd_unit" {
 data "template_file" "etcd_encryption_config" {
   template = file("${path.module}/templates/os-config/encryption-config.yaml.tftpl")
   vars = {
-      key_1 = ""
-      key_2 = ""
+      key_1 = "ivV84gTtStZstvT3en7MVqNANfKKKU8vTFzl/N8MEM4=" #TODO: move to variable or auto-generate
+      key_2 = "MZ5vNy7kCmfFAr7mnQj4yUV36d1qLnTCpSnK0NGGc0k=" #TODO: move to variable or auto-generate
   }
 }
 
@@ -184,11 +183,15 @@ data "template_file" "cloud_init_controllers" {
     fqdn = "${each.value}.${var.domain}"
     domain = var.domain
     dns_config = base64encode(data.template_file.resolved_config.rendered)
-    etcd_systemd_unit = 
+
     etcd_full_version = var.etcd_full_version
     etcd_version = var.etcd_version
+
     kube_version = var.kube_version
+    kube_config_dir = local.kube_config_dir
+    kube_certs_dir = local.kube_certs_dir
     arch = var.architecture
+
     systemd_units = jsonencode([
       {
         name = "etcd"

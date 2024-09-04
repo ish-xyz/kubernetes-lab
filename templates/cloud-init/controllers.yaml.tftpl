@@ -19,6 +19,7 @@ users:
 
 write_files:
 
+# ETCD Data Dir
 - path: /var/lib/etcd/.touch
   owner: etcd:etcd
   permissions: '0644'
@@ -28,7 +29,7 @@ write_files:
 
 # Kubernetes Configuration Files
 %{ for conf in jsondecode(kube_configs) ~}
-- path: /etc/kubernetes/${conf.name}
+- path: ${kube_config_dir}/${conf.name}
   owner: kubernetes:kubernetes
   permissions: '0644'
   defer: true
@@ -38,7 +39,7 @@ write_files:
 
 # Kubernetes Certificates
 %{ for cert in jsondecode(kube_certs) ~}
-- path: /etc/kubernetes/ssl/${cert.name}
+- path: ${kube_certs_dir}/${cert.name}
   owner: kubernetes:kubernetes
   permissions: '0644'
   defer: true
@@ -72,13 +73,6 @@ write_files:
   defer: true
   encoding: b64
   content: ${dns_config}
-
-- path: /etc/systemd/system/etcd.service
-  owner: root:root
-  permissions: '0644'
-  defer: true
-  encoding: b64
-  content: ${etcd_systemd_unit}
 
 - path: /custom-cloud-init-done
   owner: root:root
