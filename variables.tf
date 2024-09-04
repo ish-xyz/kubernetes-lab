@@ -3,6 +3,16 @@ variable "domain" {
     default = "compute.zone"
 }
 
+variable "cluster_domain" {
+    type = string
+    default = "cluster.local"
+}
+
+variable "cluster_dns_servers" {
+    type = list
+    default = []
+}
+
 variable "cluster_name" {
     type = string
     default = "mytestcluster" 

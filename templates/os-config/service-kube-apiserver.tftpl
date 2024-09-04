@@ -3,6 +3,7 @@ Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
+User=kubernetes
 ExecStart=/usr/local/bin/kube-apiserver \
   --allow-privileged=true \
   --audit-log-maxage=30 \
@@ -13,7 +14,10 @@ ExecStart=/usr/local/bin/kube-apiserver \
   --bind-address=0.0.0.0 \
   --client-ca-file=${kube_certs_dir}/ca.crt \
   --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \
-  --etcd-servers=http://127.0.0.1:2379 \
+  --etcd-servers=${etcd_endpoints} \
+  --etcd-certfile=${etcd_certs_dir}/etcd-client.crt \
+  --etcd-keyfile=${etcd_certs_dir}/etcd-client.key \
+  --etcd-cafile=${etcd_certs_dir}/ca.crt \
   --event-ttl=1h \
   --encryption-provider-config=${kube_config_dir}/encryption-config.yaml \
   --kubelet-certificate-authority=${kube_certs_dir}/ca.crt \
@@ -22,7 +26,7 @@ ExecStart=/usr/local/bin/kube-apiserver \
   --runtime-config='api/all=true' \
   --service-account-key-file=${kube_certs_dir}/service-accounts.crt \
   --service-account-signing-key-file=${kube_certs_dir}/service-accounts.key \
-  --service-account-issuer=https://server.kubernetes.local:6443 \
+  --service-account-issuer=https://apiserver.kubernetes.local:6443 \
   --service-cluster-ip-range=${service_cidr} \
   --service-node-port-range=${node_ports_range} \
   --tls-cert-file=${kube_certs_dir}/kube-apiserver.crt \

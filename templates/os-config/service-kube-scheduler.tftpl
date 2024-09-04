@@ -3,9 +3,10 @@ Description=Kubernetes Scheduler
 Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
+User=kubernetes
 ExecStart=/usr/local/bin/kube-scheduler \
   --config=${kube_config_dir}/kube-scheduler.yaml \
-  --v=2
+  --leader-elect=true
 Restart=on-failure
 RestartSec=5
 

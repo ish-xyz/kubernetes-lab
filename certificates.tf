@@ -15,7 +15,7 @@ module "admin" {
     ca_key		    = module.ca.ca_key
 
     CN			    = "admin"
-    O               = ""
+    O               = "system:masters"
     OU			    = var.cluster_name
     C		        = "United Kingdom"
     ST              = "London"
@@ -104,7 +104,8 @@ module "kube-apiserver" {
         "kubernetes.default.svc.cluster",
         "kubernetes.svc.cluster.local",
         "server.kubernetes.local",
-        "api-server.kubernetes.local"
+        "api-server.kubernetes.local",
+        "apiserver.kubernetes.local"
     ]
 
     validity_period	= 8760
@@ -148,19 +149,23 @@ module "etcd-client" {
     dns_names = local.etcd_nodes
 
     validity_period	= 8760
-
-    #     cert_filename = "${path.root}/files/tmpcerts/etcd-client.crt"
-    #     key_filename = "${path.root}/files/tmpcerts/etcd-client.key"
 }
 
-# resource "local_file" "test-ca-file-key" {
-# 	content         = module.ca.ca_key
-# 	filename        = "${path.root}/files/tmpcerts/ca.key"
-# 	file_permission = "0644"
-# }
+module "kubelet-controllers" {
+    source          = "./submodules/tls-generator"
+    for_each        = toset(local.controllers_set)
+    ca_cert		    = module.ca.ca_cert
+    ca_key		    = module.ca.ca_key
 
-# resource "local_file" "test-ca-file-crt" {
-# 	content         = module.ca.ca_cert
-# 	filename        = "${path.root}/files/tmpcerts/ca.crt"
-# 	file_permission = "0644"
-# }
+    CN			    = "system:node:${each.value}"
+    O			    = "system:nodes"
+    OU			    = var.cluster_name
+    C		        = "United Kingdom"
+    ST              = "London"
+    L		        = "London"
+
+    ip_addresses = ["127.0.0.1"]
+    dns_names = [each.value]
+
+    validity_period	= 8760
+}

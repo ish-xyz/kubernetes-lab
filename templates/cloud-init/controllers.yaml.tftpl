@@ -1,5 +1,9 @@
 #cloud-config
 fqdn: ${fqdn}
+packages:
+%{ for pkg in jsondecode(packages) ~}
+- ${pkg}
+%{ endfor ~}
 users:
 - name: zero
   gecos: zero
@@ -25,7 +29,14 @@ write_files:
   permissions: '0644'
   defer: true
   encoding: b64
-  content: ""
+  content: "MQo="
+
+- path: /var/log/kube-apiserver-audit.log
+  owner: kubernetes:kubernetes
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: "MQo="
 
 # Kubernetes Configuration Files
 %{ for conf in jsondecode(kube_configs) ~}
@@ -67,6 +78,13 @@ write_files:
   content: ${unit.content}
 %{ endfor ~}
 
+- path: /etc/hosts
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${hosts_file}
+
 - path: /etc/systemd/resolved.conf
   owner: root:root
   permissions: '0644'
@@ -82,20 +100,27 @@ write_files:
   content: "MQo="
 
 runcmd:
-### binaries preparation
-- [curl, -L, -o, /usr/local/bin/kube-controller-manager, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager]
-- [curl, -L, -o, /usr/local/bin/kube-scheduler, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler]
-- [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver]
-- [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubelet]
-- [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy]
-- [curl, -L, -o, /usr/local/bin/kubectl, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl]
-- [curl, -L, -o, /tmp/${etcd_full_version}.tar.gz, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
-- [tar, -xvf, /tmp/${etcd_full_version}.tar.gz, -C, /tmp]
-- [mv, /tmp/${etcd_full_version}/etcd, /usr/local/bin/]
-- [mv, /tmp/${etcd_full_version}/etcdctl, /usr/local/bin/]
-- [mv, /tmp/${etcd_full_version}/etcdutl, /usr/local/bin/]
-- [chmod, '+x', '/usr/local/bin/*']
-### end binaries preparation
+### requirements
 - [systemctl, restart, systemd-resolved]
-- [systemctl, enable, etcd.service]
-- [systemctl, start, etcd.service]
+
+### binaries preparation
+- 'curl -L -o /usr/local/bin/kube-controller-manager https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager'
+- 'curl -L -o /usr/local/bin/kube-scheduler https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler'
+- 'curl -L -o /usr/local/bin/kube-apiserver https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver'
+- 'curl -L -o /usr/local/bin/kubelet https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubelet'
+- 'curl -L -o /usr/local/bin/kube-proxy https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy'
+- 'curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl'
+- 'curl -L -o /tmp/${etcd_full_version}.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz'
+- 'tar -xvf /tmp/${etcd_full_version}.tar.gz -C /tmp'
+- 'mv /tmp/${etcd_full_version}/etcd /usr/local/bin/'
+- 'mv /tmp/${etcd_full_version}/etcdctl /usr/local/bin/'
+- 'mv /tmp/${etcd_full_version}/etcdutl /usr/local/bin/'
+- 'chmod +x /usr/local/bin/*'
+###
+
+### new systemd units
+%{ for unit in jsondecode(systemd_units) ~}
+- [systemctl, enable, ${unit.name}]
+- [systemctl, start, ${unit.name}]
+%{ endfor ~}
+###

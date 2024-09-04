@@ -72,6 +72,7 @@ data "template_file" "etcd_systemd_unit" {
     for_each = toset(local.controllers_set)
     template = file("${path.module}/templates/os-config/service-etcd.tftpl")
     vars = {
+      etcd_certs_dir = local.etcd_certs_dir
       etcd_cluster_token = random_password.etcd_token.result
       etcd_name = each.value
       etcd_cluster_members = local.etcd_cluster_members
@@ -85,6 +86,8 @@ data "template_file" "kube_apiserver_systemd_unit" {
       node_ports_range = "30000-32767"
       kube_certs_dir = local.kube_certs_dir
       kube_config_dir = local.kube_config_dir
+      etcd_endpoints = local.etcd_endpoints
+      etcd_certs_dir = local.etcd_certs_dir
     }
 }
 
@@ -105,6 +108,25 @@ data "template_file" "kube_scheduler_systemd_unit" {
     }
 }
 
+data "template_file" "kube_proxy_systemd_unit" {
+    template = file("${path.module}/templates/os-config/service-kube-proxy.tftpl")
+    vars = {
+      kube_config_dir = local.kube_config_dir
+    }
+}
+
+data "template_file" "kubelet_systemd_unit" {
+  template = file("${path.module}/templates/os-config/service-kubelet.tftpl")
+  vars = {
+    kube_config_dir = local.kube_config_dir
+  }
+}
+
+data "template_file" "containerd_systemd_unit" {
+  template = file("${path.module}/templates/os-config/service-containerd.tftpl")
+  vars = {}
+}
+
 
 ## Components configurations
 
@@ -113,6 +135,16 @@ data "template_file" "etcd_encryption_config" {
   vars = {
       key_1 = "ivV84gTtStZstvT3en7MVqNANfKKKU8vTFzl/N8MEM4=" #TODO: move to variable or auto-generate
       key_2 = "MZ5vNy7kCmfFAr7mnQj4yUV36d1qLnTCpSnK0NGGc0k=" #TODO: move to variable or auto-generate
+  }
+}
+
+data "template_file" "kubelet_config" {
+  template = file("${path.module}/templates/os-config/kubelet-config.tftpl")
+  vars = {
+    pod_cidr = var.pod_cidr
+    cluster_domain = var.cluster_domain
+    kube_certs_dir = local.kube_certs_dir
+    cluster_dns_servers = jsonencode(var.cluster_dns_servers)
   }
 }
 
@@ -126,40 +158,40 @@ data "template_file" "kube_scheduler_config" {
 data "template_file" "kubeconfig_admin" {
     template = file("${path.module}/templates/os-config/kubeconfig-admin.tftpl")
     vars = {
-      ca_crt = module.ca.cert
+      ca_crt = base64encode(module.ca.cert)
       cluster_name = var.cluster_name
-      admin_crt = module.admin.cert
-      admin_key = module.admin.key
+      admin_crt = base64encode(module.admin.cert)
+      admin_key = base64encode(module.admin.key)
     }
 }
 
 data "template_file" "kubeconfig_controller_manager" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-controller-manager.tftpl")
     vars = {
-      ca_crt = module.ca.cert
+      ca_crt = base64encode(module.ca.cert)
       cluster_name = var.cluster_name
-      kube_controller_manager_crt = module.kube-controller-manager.cert
-      kube_controller_manager_key = module.kube-controller-manager.key
+      kube_controller_manager_crt = base64encode(module.kube-controller-manager.cert)
+      kube_controller_manager_key = base64encode(module.kube-controller-manager.key)
     }
 }
 
 data "template_file" "kubeconfig_kube_proxy" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-proxy.tftpl")
     vars = {
-      ca_crt = module.ca.cert
+      ca_crt = base64encode(module.ca.cert)
       cluster_name = var.cluster_name
-      kube_proxy_crt = module.kube-proxy.cert
-      kube_proxy_key = module.kube-proxy.key
+      kube_proxy_crt = base64encode(module.kube-proxy.cert)
+      kube_proxy_key = base64encode(module.kube-proxy.key)
     }
 }
 
 data "template_file" "kubeconfig_kube_scheduler" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-scheduler.tftpl")
     vars = {
-      ca_crt = module.ca.cert
+      ca_crt = base64encode(module.ca.cert)
       cluster_name = var.cluster_name
-      kube_scheduler_crt = module.kube-scheduler.cert
-      kube_scheduler_key = module.kube-scheduler.key
+      kube_scheduler_crt = base64encode(module.kube-scheduler.cert)
+      kube_scheduler_key = base64encode(module.kube-scheduler.key)
     }
 }
 
@@ -192,6 +224,8 @@ data "template_file" "cloud_init_controllers" {
     kube_certs_dir = local.kube_certs_dir
     arch = var.architecture
 
+    packages = jsonencode(["socat", "conntrack", "ipset", "net-tools"])
+    hosts_file = base64encode(file("${path.module}/files/hosts.tftpl"))
     systemd_units = jsonencode([
       {
         name = "etcd"
@@ -214,12 +248,19 @@ data "template_file" "cloud_init_controllers" {
       #   content = base64encode(data.template_file.kube_proxy_systemd_unit.rendered)
       # },
       # {
-      #   name = "kube-kubelet"
+      #   name = "kubelet"
       #   content = base64encode(data.template_file.kubelet_systemd_unit.rendered)
+      # },
+      # {
+      #   name = "containerd"
+      #   content = base64encode(data.template_file.containerd_systemd_unit.rendered)
       # }
-      # CRI, CNI?
     ])
     kube_configs = jsonencode([
+      {
+        name = "encryption-config.yaml"
+        content = base64encode(data.template_file.etcd_encryption_config.rendered)
+      },
       {
         name = "kube-scheduler.yaml"
         content = base64encode(data.template_file.kube_scheduler_config.rendered)
@@ -242,8 +283,12 @@ data "template_file" "cloud_init_controllers" {
       },
       {
         name    = "kube-scheduler.yaml"
-        content = base64encode(data.template_file.kubeconfig_admin.rendered)
+        content = base64encode(data.template_file.kube_scheduler_config.rendered)
       },
+      {
+        name = "kubelet-config.yaml"
+        content = base64encode(data.template_file.kubelet_config.rendered)
+      }
     ])
     kube_certs = jsonencode([
       {
@@ -277,6 +322,14 @@ data "template_file" "cloud_init_controllers" {
       {
         name    = "service-accounts.key"
         content = base64encode(module.service-accounts.key)
+      },
+      {
+        name    = "kubelet.crt"
+        content = base64encode(module.kubelet-controllers[each.key].cert)
+      },
+      {
+        name    = "kubelet.key"
+        content = base64encode(module.kubelet-controllers[each.key].key)
       }
     ])
     etcd_certs = jsonencode([
