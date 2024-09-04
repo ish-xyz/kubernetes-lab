@@ -27,7 +27,7 @@ write_files:
   content: ""
 
 # Kubernetes Configuration Files
-%{ for conf in jsondecode(kube_config) ~}
+%{ for conf in jsondecode(kube_configs) ~}
 - path: /etc/kubernetes/${conf.name}
   owner: kubernetes:kubernetes
   permissions: '0644'
@@ -92,6 +92,8 @@ runcmd:
 - [curl, -L, -o, /usr/local/bin/kube-controller-manager, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager]
 - [curl, -L, -o, /usr/local/bin/kube-scheduler, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler]
 - [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver]
+- [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubelet]
+- [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy]
 - [curl, -L, -o, /usr/local/bin/kubectl, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl]
 - [curl, -L, -o, /tmp/${etcd_full_version}.tar.gz, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
 - [tar, -xvf, /tmp/${etcd_full_version}.tar.gz, -C, /tmp]

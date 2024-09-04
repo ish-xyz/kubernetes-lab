@@ -71,7 +71,7 @@ data "dns_a_record_set" "name_servers" {
 
 data "template_file" "etcd_systemd_unit" {
     for_each = toset(local.controllers_set)
-    template = file("${path.module}/templates/os-config/etcd.service.tftpl")
+    template = file("${path.module}/templates/os-config/service-etcd.tftpl")
     vars = {
       etcd_cluster_token = random_password.etcd_token.result
       etcd_name = each.value
@@ -80,28 +80,30 @@ data "template_file" "etcd_systemd_unit" {
 }
 
 data "template_file" "kube_apiserver_systemd_unit" {
-  
+    template = file("${path.module}/templates/os-config/service-kube-apiserver.tftpl")
+    vars = {
+      service_cidr="10.32.0.0/24"
+      node_ports_range = "30000-32767"
+      kube_certs_dir = "/etc/kubernetes/ssl"
+      kube_config_dir = "/etc/kubernetes"
+    }
 }
 
 data "template_file" "kube_controller_manager_systemd_unit" {
-    template = file("${path.module}/templates/os-config/kube-controller-manager.service.tftpl")
+    template = file("${path.module}/templates/os-config/service-kube-controller-manager.tftpl")
     vars = {
       pod_cidr = "10.200.0.0/16"
       service_cidr = "10.32.0.0/24"
+      kube_certs_dir = "/etc/kubernetes/ssl"
+      kube_config_dir = "/etc/kubernetes"
     }
 }
  
 data "template_file" "kube_scheduler_systemd_unit" {
-
-}
-
-data "template_file" "kube_proxy_systemd_unit" {
-
-}
-
-data "template_file" "kubelet_systemd_unit" {
-    template = file("${path.module}/templates/os-config/kubelet.service.tftpl")
-    vars = {}
+    template = file("${path.module}/templates/os-config/service-kube-scheduler.tftpl")
+    vars = {
+      kube_config_dir = "/etc/kubernetes"
+    }
 }
 
 
@@ -115,25 +117,12 @@ data "template_file" "etcd_encryption_config" {
   }
 }
 
-# data "template_file" "kube_apiserver_config" {
-
-# }
-
-# data "template_file" "kube_controller_manager_config" {
-
-# }
-
-# data "template_file" "kube_scheduler_config" {
-
-# }
-
-# data "template_file" "kube_proxy_config" {
-
-# }
-
-# data "template_file" "kubelet_config" {
-
-# }
+data "template_file" "kube_scheduler_config" {
+    template = file("${path.module}/templates/os-config/kube-scheduler-config.tftpl")
+    vars = {
+      kube_config_dir = "/etc/kubernetes"
+    }
+}
 
 data "template_file" "kubeconfig_admin" {
     template = file("${path.module}/templates/os-config/kubeconfig-admin.tftpl")
@@ -217,17 +206,21 @@ data "template_file" "cloud_init_controllers" {
         name = "kube-scheduler"
         content = base64encode(data.template_file.kube_scheduler_systemd_unit.rendered)
       },
-      {
-        name = "kube-proxy"
-        content = base64encode(data.template_file.kube_proxy_systemd_unit.rendered)
-      },
-      {
-        name = "kube-kubelet"
-        content = base64encode(data.template_file.kubelet_systemd_unit.rendered)
-      }
+      # {
+      #   name = "kube-proxy"
+      #   content = base64encode(data.template_file.kube_proxy_systemd_unit.rendered)
+      # },
+      # {
+      #   name = "kube-kubelet"
+      #   content = base64encode(data.template_file.kubelet_systemd_unit.rendered)
+      # }
       # CRI, CNI?
     ])
     kube_configs = jsonencode([
+      {
+        name = "kube-scheduler.yaml"
+        content = base64encode(data.template_file.kube_scheduler_config.rendered)
+      },
       {
         name    = "admin.kubeconfig"
         content = base64encode(data.template_file.kubeconfig_admin.rendered)
@@ -243,6 +236,10 @@ data "template_file" "cloud_init_controllers" {
       {
         name    = "kube-scheduler.kubeconfig"
         content = base64encode(data.template_file.kubeconfig_kube_scheduler.rendered)
+      },
+      {
+        name    = "kube-scheduler.yaml"
+        content = base64encode(data.template_file.kubeconfig_admin.rendered)
       },
     ])
     kube_certs = jsonencode([
