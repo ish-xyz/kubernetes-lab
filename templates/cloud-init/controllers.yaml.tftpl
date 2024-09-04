@@ -12,17 +12,41 @@ users:
   gecos: etcd
   shell: /usr/sbin/nologin
   lock_passwd: true
+- name: kubernetes
+  gecos: kubernetes
+  shell: /usr/sbin/nologin
+  lock_passwd: true
 
 write_files:
-# create certificates
+
+- path: /var/lib/etcd/.touch
+  owner: etcd:etcd
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ""
+
+# Kubernetes Configuration Files
+%{ for conf in jsondecode(kube_config) ~}
+- path: /etc/kubernetes/${conf.name}
+  owner: kubernetes:kubernetes
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${conf.content}
+%{ endfor ~}
+
+# Kubernetes Certificates
 %{ for cert in jsondecode(kube_certs) ~}
-- path: /var/lib/kubernetes/certs/${cert.name}
-  owner: zero:zero
+- path: /etc/kubernetes/ssl/${cert.name}
+  owner: kubernetes:kubernetes
   permissions: '0644'
   defer: true
   encoding: b64
   content: ${cert.content}
 %{ endfor ~}
+
+# ETCD Certificates
 %{ for cert in jsondecode(etcd_certs) ~}
 - path: /etc/etcd/ssl/${cert.name}
   owner: etcd:etcd
@@ -30,6 +54,16 @@ write_files:
   defer: true
   encoding: b64
   content: ${cert.content}
+%{ endfor ~}
+
+# System Units
+%{ for unit in jsondecode(systemd_units) ~}
+- path: /etc/systemd/system/${unit.name}.service
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${unit.content}
 %{ endfor ~}
 
 - path: /etc/systemd/resolved.conf
@@ -46,28 +80,6 @@ write_files:
   encoding: b64
   content: ${etcd_systemd_unit}
 
-- path: /var/lib/etcd/.touch
-  owner: etcd:etcd
-  permissions: '0644'
-  defer: true
-  encoding: b64
-  content: ""
-
-- path: /tmp/${etcd_full_version}.tar.gz
-  url: https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz
-
-- path: /usr/local/bin/kube-apiserver
-  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver
-
-- path: /usr/local/bin/kube-controller-manager
-  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager
-
-- path: /usr/local/bin/kube-scheduler
-  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler
-
-- path: /usr/local/bin/kube-proxy
-  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy
-
 - path: /custom-cloud-init-done
   owner: root:root
   permissions: '0644'
@@ -76,11 +88,18 @@ write_files:
   content: "MQo="
 
 runcmd:
+### binaries preparation
+- [curl, -L, -o, /usr/local/bin/kube-controller-manager, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager]
+- [curl, -L, -o, /usr/local/bin/kube-scheduler, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler]
+- [curl, -L, -o, /usr/local/bin/kube-apiserver, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver]
+- [curl, -L, -o, /usr/local/bin/kubectl, https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl]
+- [curl, -L, -o, /tmp/${etcd_full_version}.tar.gz, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
 - [tar, -xvf, /tmp/${etcd_full_version}.tar.gz, -C, /tmp]
 - [mv, /tmp/${etcd_full_version}/etcd, /usr/local/bin/]
 - [mv, /tmp/${etcd_full_version}/etcdctl, /usr/local/bin/]
 - [mv, /tmp/${etcd_full_version}/etcdutl, /usr/local/bin/]
-
+- [chmod, '+x', '/usr/local/bin/*']
+### end binaries preparation
 - [systemctl, restart, systemd-resolved]
 - [systemctl, enable, etcd.service]
 - [systemctl, start, etcd.service]

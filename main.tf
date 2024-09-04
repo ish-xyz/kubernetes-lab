@@ -1,3 +1,4 @@
+# Compute resources
 resource "aws_instance" "controllers" {
   for_each                    = toset(local.controllers_set)
   ami                         = var.ami
@@ -23,6 +24,21 @@ resource "aws_instance" "controllers" {
   }
 }
 
+# S3 for Cloud-init config
+resource "aws_s3_bucket" "config_bucket" {
+  bucket = "cloud-init-configurations"
+  force_destroy = true
+}
+
+resource "aws_s3_object" "controllers_cloud_init_config" {
+  for_each = toset(local.controllers_set)
+  bucket = aws_s3_bucket.config_bucket.id
+  key    = "${var.cluster_name}/${each.value}-config.yaml"
+  content = data.template_file.cloud_init_controllers[each.key].rendered
+}
+
+
+# DNS Config
 data "aws_route53_zone" "compute_zone" {
   zone_id      = var.route53_zone_id
 }
@@ -44,6 +60,15 @@ resource "aws_route53_record" "www" {
   records   = [each.value.private_ip]
 }
 
+data "dns_a_record_set" "name_servers" {
+  for_each = toset(data.aws_route53_zone.compute_zone.name_servers)
+  host = each.value
+}
+
+# Templates
+
+## Systemd units templates
+
 data "template_file" "etcd_systemd_unit" {
     for_each = toset(local.controllers_set)
     template = file("${path.module}/templates/os-config/etcd.service.tftpl")
@@ -54,10 +79,103 @@ data "template_file" "etcd_systemd_unit" {
     }
 }
 
-data "dns_a_record_set" "name_servers" {
-  for_each = toset(data.aws_route53_zone.compute_zone.name_servers)
-  host = each.value
+data "template_file" "kube_apiserver_systemd_unit" {
+  
 }
+
+data "template_file" "kube_controller_manager_systemd_unit" {
+    template = file("${path.module}/templates/os-config/kube-controller-manager.service.tftpl")
+    vars = {
+      pod_cidr = "10.200.0.0/16"
+      service_cidr = "10.32.0.0/24"
+    }
+}
+ 
+data "template_file" "kube_scheduler_systemd_unit" {
+
+}
+
+data "template_file" "kube_proxy_systemd_unit" {
+
+}
+
+data "template_file" "kubelet_systemd_unit" {
+    template = file("${path.module}/templates/os-config/kubelet.service.tftpl")
+    vars = {}
+}
+
+
+## Components configurations
+
+data "template_file" "etcd_encryption_config" {
+  template = file("${path.module}/templates/os-config/encryption-config.yaml.tftpl")
+  vars = {
+      key_1 = ""
+      key_2 = ""
+  }
+}
+
+# data "template_file" "kube_apiserver_config" {
+
+# }
+
+# data "template_file" "kube_controller_manager_config" {
+
+# }
+
+# data "template_file" "kube_scheduler_config" {
+
+# }
+
+# data "template_file" "kube_proxy_config" {
+
+# }
+
+# data "template_file" "kubelet_config" {
+
+# }
+
+data "template_file" "kubeconfig_admin" {
+    template = file("${path.module}/templates/os-config/kubeconfig-admin.tftpl")
+    vars = {
+      ca_crt = module.ca.cert
+      cluster_name = var.cluster_name
+      admin_crt = module.admin.cert
+      admin_key = module.admin.key
+    }
+}
+
+data "template_file" "kubeconfig_controller_manager" {
+    template = file("${path.module}/templates/os-config/kubeconfig-kube-controller-manager.tftpl")
+    vars = {
+      ca_crt = module.ca.cert
+      cluster_name = var.cluster_name
+      kube_controller_manager_crt = module.kube-controller-manager.cert
+      kube_controller_manager_key = module.kube-controller-manager.key
+    }
+}
+
+data "template_file" "kubeconfig_kube_proxy" {
+    template = file("${path.module}/templates/os-config/kubeconfig-kube-proxy.tftpl")
+    vars = {
+      ca_crt = module.ca.cert
+      cluster_name = var.cluster_name
+      kube_proxy_crt = module.kube-proxy.cert
+      kube_proxy_key = module.kube-proxy.key
+    }
+}
+
+data "template_file" "kubeconfig_kube_scheduler" {
+    template = file("${path.module}/templates/os-config/kubeconfig-kube-scheduler.tftpl")
+    vars = {
+      ca_crt = module.ca.cert
+      cluster_name = var.cluster_name
+      kube_scheduler_crt = module.kube-scheduler.cert
+      kube_scheduler_key = module.kube-scheduler.key
+    }
+}
+
+## Other OS Configs
 
 data "template_file" "resolved_config" {
     template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
@@ -68,6 +186,7 @@ data "template_file" "resolved_config" {
     }
 }
 
+## Main Cloud Init Config
 data "template_file" "cloud_init_controllers" {
   for_each  = toset(local.controllers_set)
   template  = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")
@@ -76,11 +195,56 @@ data "template_file" "cloud_init_controllers" {
     fqdn = "${each.value}.${var.domain}"
     domain = var.domain
     dns_config = base64encode(data.template_file.resolved_config.rendered)
-    etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit[each.key].rendered)
+    etcd_systemd_unit = 
     etcd_full_version = var.etcd_full_version
     etcd_version = var.etcd_version
     kube_version = var.kube_version
     arch = var.architecture
+    systemd_units = jsonencode([
+      {
+        name = "etcd"
+        content = base64encode(data.template_file.etcd_systemd_unit[each.key].rendered)
+      },
+      {
+        name = "kube-apiserver"
+        content = base64encode(data.template_file.kube_apiserver_systemd_unit.rendered)
+      },
+      {
+        name = "kube-controller-manager"
+        content = base64encode(data.template_file.kube_controller_manager_systemd_unit.rendered)
+      },
+      {
+        name = "kube-scheduler"
+        content = base64encode(data.template_file.kube_scheduler_systemd_unit.rendered)
+      },
+      {
+        name = "kube-proxy"
+        content = base64encode(data.template_file.kube_proxy_systemd_unit.rendered)
+      },
+      {
+        name = "kube-kubelet"
+        content = base64encode(data.template_file.kubelet_systemd_unit.rendered)
+      }
+      # CRI, CNI?
+    ])
+    kube_configs = jsonencode([
+      {
+        name    = "admin.kubeconfig"
+        content = base64encode(data.template_file.kubeconfig_admin.rendered)
+      },
+      {
+        name    = "kube-controller-manager.kubeconfig"
+        content = base64encode(data.template_file.kubeconfig_controller_manager.rendered)
+      },
+      {
+        name    = "kube-proxy.kubeconfig"
+        content = base64encode(data.template_file.kubeconfig_kube_proxy.rendered)
+      },
+      {
+        name    = "kube-scheduler.kubeconfig"
+        content = base64encode(data.template_file.kubeconfig_kube_scheduler.rendered)
+      },
+    ])
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
@@ -143,22 +307,3 @@ data "template_file" "cloud_init_controllers" {
     ])
   }
 }
-
-# Create S3 bucket
-resource "aws_s3_bucket" "config_bucket" {
-  bucket = "cloud-init-configurations"
-  force_destroy = true
-}
-
-# Upload cloud-init config to S3
-resource "aws_s3_object" "controllers_cloud_init_config" {
-  for_each = toset(local.controllers_set)
-  bucket = aws_s3_bucket.config_bucket.id
-  key    = "${var.cluster_name}/${each.value}-config.yaml"
-  content = data.template_file.cloud_init_controllers[each.key].rendered
-}
-
-# resource "local_file" "tmp_cloud_init" {
-#   content  = data.template_file.cloud_init_controllers[local.controllers_set[0]].rendered
-#   filename = "${path.module}/tmp-cloud-init.yaml"
-# }
