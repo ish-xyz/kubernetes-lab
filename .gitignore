@@ -2,3 +2,6 @@
 files/certs
 tmp-cloud-init.yaml
 export.sh
+.terraform.tfstate.lock.info
+terraform.tfstate
+terraform.tfstate.backup
