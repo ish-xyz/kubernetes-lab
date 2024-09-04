@@ -158,7 +158,7 @@ data "template_file" "kube_scheduler_config" {
 data "template_file" "kubeconfig_admin" {
     template = file("${path.module}/templates/os-config/kubeconfig-admin.tftpl")
     vars = {
-      ca_crt = base64encode(module.ca.cert)
+      ca_crt = base64encode(module.ca.ca_cert)
       cluster_name = var.cluster_name
       admin_crt = base64encode(module.admin.cert)
       admin_key = base64encode(module.admin.key)
@@ -168,7 +168,7 @@ data "template_file" "kubeconfig_admin" {
 data "template_file" "kubeconfig_controller_manager" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-controller-manager.tftpl")
     vars = {
-      ca_crt = base64encode(module.ca.cert)
+      ca_crt = base64encode(module.ca.ca_cert)
       cluster_name = var.cluster_name
       kube_controller_manager_crt = base64encode(module.kube-controller-manager.cert)
       kube_controller_manager_key = base64encode(module.kube-controller-manager.key)
@@ -178,7 +178,7 @@ data "template_file" "kubeconfig_controller_manager" {
 data "template_file" "kubeconfig_kube_proxy" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-proxy.tftpl")
     vars = {
-      ca_crt = base64encode(module.ca.cert)
+      ca_crt = base64encode(module.ca.ca_cert)
       cluster_name = var.cluster_name
       kube_proxy_crt = base64encode(module.kube-proxy.cert)
       kube_proxy_key = base64encode(module.kube-proxy.key)
@@ -188,7 +188,7 @@ data "template_file" "kubeconfig_kube_proxy" {
 data "template_file" "kubeconfig_kube_scheduler" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-scheduler.tftpl")
     vars = {
-      ca_crt = base64encode(module.ca.cert)
+      ca_crt = base64encode(module.ca.ca_cert)
       cluster_name = var.cluster_name
       kube_scheduler_crt = base64encode(module.kube-scheduler.cert)
       kube_scheduler_key = base64encode(module.kube-scheduler.key)
