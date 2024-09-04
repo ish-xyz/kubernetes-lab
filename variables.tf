@@ -18,6 +18,16 @@ variable "etcd_version" {
     default = "v3.5.15"
 }
 
+variable "kube_version" {
+    type = string
+    default = "v1.31"
+}
+
+variable "architecture" {
+    type = string
+    default = "amd64"
+}
+
 variable "route53_zone_id" {
     type = string
     default = "Z0254661OBYGIWIKHFI3"

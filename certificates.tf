@@ -82,7 +82,7 @@ module "kube-scheduler" {
     validity_period	= 8760
 }
 
-module "kube-api-server" {
+module "kube-apiserver" {
     source          = "./submodules/tls-generator"
     ca_cert		    = module.ca.ca_cert
     ca_key		    = module.ca.ca_key

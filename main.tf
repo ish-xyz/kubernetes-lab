@@ -8,6 +8,7 @@ resource "aws_instance" "controllers" {
   user_data_replace_on_change = true
   user_data = <<-EOF
               #!/bin/bash
+              # ${md5(data.template_file.cloud_init_controllers[each.value].rendered)}
               set -euo pipefail
               snap install aws-cli --classic
               cloud_config_url=$(aws s3 presign s3://${aws_s3_bucket.config_bucket.bucket}/${var.cluster_name}/${each.value}-config.yaml --expires-in 3600)
@@ -26,6 +27,14 @@ data "aws_route53_zone" "compute_zone" {
   zone_id      = var.route53_zone_id
 }
 
+resource "random_password" "etcd_token" {
+  length           = 16
+  special          = false
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_route53_record" "www" {
   for_each  = aws_instance.controllers
   zone_id   = data.aws_route53_zone.compute_zone.zone_id
@@ -39,7 +48,7 @@ data "template_file" "etcd_systemd_unit" {
     for_each = toset(local.controllers_set)
     template = file("${path.module}/templates/os-config/etcd.service.tftpl")
     vars = {
-      etcd_cluster_token = "test" # todo change token
+      etcd_cluster_token = random_password.etcd_token.result
       etcd_name = each.value
       etcd_cluster_members = local.etcd_cluster_members
     }
@@ -70,6 +79,8 @@ data "template_file" "cloud_init_controllers" {
     etcd_systemd_unit = base64encode(data.template_file.etcd_systemd_unit[each.key].rendered)
     etcd_full_version = var.etcd_full_version
     etcd_version = var.etcd_version
+    kube_version = var.kube_version
+    arch = var.architecture
     kube_certs = jsonencode([
       {
         name    = "admin.crt"
@@ -88,12 +99,12 @@ data "template_file" "cloud_init_controllers" {
         content = base64encode(module.ca.ca_key)
       },
       {
-        name    = "kube-api-server.crt"
-        content = base64encode(module.kube-api-server.cert)
+        name    = "kube-apiserver.crt"
+        content = base64encode(module.kube-apiserver.cert)
       },
       {
-        name    = "kube-api-server.key"
-        content = base64encode(module.kube-api-server.key)
+        name    = "kube-apiserver.key"
+        content = base64encode(module.kube-apiserver.key)
       },
       {
         name    = "service-accounts.crt"
@@ -147,12 +158,7 @@ resource "aws_s3_object" "controllers_cloud_init_config" {
   content = data.template_file.cloud_init_controllers[each.key].rendered
 }
 
-resource "local_file" "tmp_cloud_init" {
-  content  = data.template_file.cloud_init_controllers[local.controllers_set[0]].rendered
-  filename = "${path.module}/tmp-cloud-init.yaml"
-}
-
-resource "local_file" "tmp_etcd_service" {
-  content  = data.template_file.etcd_systemd_unit[local.controllers_set[0]].rendered
-  filename = "${path.module}/tmp-etcd.service"
-}
+# resource "local_file" "tmp_cloud_init" {
+#   content  = data.template_file.cloud_init_controllers[local.controllers_set[0]].rendered
+#   filename = "${path.module}/tmp-cloud-init.yaml"
+# }

@@ -51,7 +51,22 @@ write_files:
   permissions: '0644'
   defer: true
   encoding: b64
-  content: "MQo="
+  content: ""
+
+- path: /tmp/${etcd_full_version}.tar.gz
+  url: https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz
+
+- path: /usr/local/bin/kube-apiserver
+  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver
+
+- path: /usr/local/bin/kube-controller-manager
+  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager
+
+- path: /usr/local/bin/kube-scheduler
+  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler
+
+- path: /usr/local/bin/kube-proxy
+  url: https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy
 
 - path: /custom-cloud-init-done
   owner: root:root
@@ -61,11 +76,11 @@ write_files:
   content: "MQo="
 
 runcmd:
-- [curl, -o, /tmp/${etcd_full_version}.tar.gz, -L, https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz]
 - [tar, -xvf, /tmp/${etcd_full_version}.tar.gz, -C, /tmp]
 - [mv, /tmp/${etcd_full_version}/etcd, /usr/local/bin/]
 - [mv, /tmp/${etcd_full_version}/etcdctl, /usr/local/bin/]
 - [mv, /tmp/${etcd_full_version}/etcdutl, /usr/local/bin/]
+
 - [systemctl, restart, systemd-resolved]
 - [systemctl, enable, etcd.service]
 - [systemctl, start, etcd.service]
