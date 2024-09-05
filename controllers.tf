@@ -195,17 +195,6 @@ data "template_file" "kubeconfig_kubelet" {
     }
 }
 
-## Other OS Configs
-
-data "template_file" "resolved_config" {
-    template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
-    vars = {
-      domain = var.domain
-      aws_region = var.aws_region
-      nameservers_list = join(" ", [for _, ns in data.dns_a_record_set.name_servers: join(" ", [for _, ip in ns.addrs: ip])])
-    }
-}
-
 ## Controllers Cloud Init Config
 data "template_file" "cloud_init_controllers" {
   for_each  = toset(local.controllers_set)

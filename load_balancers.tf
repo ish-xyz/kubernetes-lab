@@ -6,7 +6,7 @@ resource "aws_instance" "load_balancers" {
   subnet_id                   = var.subnet_id
   key_name                    = var.key_name
   user_data_replace_on_change = true
-  user_data                   = ""
+  user_data_base64            = base64gzip(data.template_file.load_balancer_cloud_init[each.key].rendered)
   tags = {
     Name = each.value
     FQDN = "${each.value}.${var.domain}"
@@ -38,3 +38,30 @@ resource "aws_route53_record" "kube_apiserver_external" {
   }
   set_identifier = "kube_apiserver_to_lb_${each.key}"
 }
+
+
+data "template_file" "load_balancer_haproxy_cfg" {
+    template = file("${path.module}/templates/load-balancers/haproxy.cfg.tftpl")
+    vars = {
+      backend_servers = jsonencode(local.controllers_set)
+      domain = var.domain
+    }
+}
+
+data "template_file" "load_balancer_cloud_init" {
+    for_each = toset(local.load_balancers_set)
+    template = file("${path.module}/templates/load-balancers/cloud-init.yaml.tftpl")
+    vars = {
+        fqdn = "${each.value}.${var.domain}"
+        packages = jsondecode(["haproxy", "net-tools"])
+        resolved_config = base64encode(data.template_file.resolved_config.rendered)
+        haproxy_config = base64decode(data.template_file.load_balancer_haproxy_cfg.rendered)
+    }
+}
+###
+# cloud init config
+## add user zero
+## install haproxy
+## import haproxy config
+## add dns configurations
+##

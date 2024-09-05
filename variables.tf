@@ -91,9 +91,9 @@ variable "nodes_count" {
     default = 3
 }
 
-variable "lbs_count" {
+variable "load_balancers_count" {
     type = number
-    default = 2
+    default = 1
 }
 
 variable "load_balancers_instance_type" {

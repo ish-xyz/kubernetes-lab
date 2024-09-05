@@ -1,7 +1,7 @@
 locals {
 
   controllers_set = [for i in range(var.controllers_count) : "controller-${i}-${var.cluster_name}"]
-  load_balancers_set = [for i in range(var.lbs_count): "lb-${i}-${var.cluster_name}"]
+  load_balancers_set = [for i in range(var.load_balancers_count): "lb-${i}-${var.cluster_name}"]
 
   ### ETCD Config
   etcd_nodes = [for i in range(var.nodes_count) : "controller-${i}-${var.cluster_name}"]

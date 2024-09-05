@@ -8,7 +8,7 @@ global
     group haproxy
     daemon
 
-    # Add these lines for DNS resolution
+    # DNS resolution points at systemd-resolved
     resolvers local_dns
         nameserver dns1 127.0.0.53:53
         resolve_retries 3
@@ -39,6 +39,8 @@ backend kubernetes-backend
     mode tcp
     option tcp-check
     balance roundrobin
-    server controller-0-mytestcluster controller-0-mytestcluster.compute.zone:6443 check resolvers local_dns resolve-prefer ipv4
-    server controller-1-mytestcluster controller-1-mytestcluster.compute.zone:6443 check resolvers local_dns resolve-prefer ipv4
-    server controller-2-mytestcluster controller-2-mytestcluster.compute.zone:6443 check resolvers local_dns resolve-prefer ipv4
+%{ for srv in jsondecode(backend_servers) ~}
+    server ${srv} ${srv}.${domain}:6443 check resolvers local_dns resolve-prefer ipv4
+    server ${srv} ${srv}.${domain}:6443 check resolvers local_dns resolve-prefer ipv4
+    server ${srv} ${srv}.${domain}:6443 check resolvers local_dns resolve-prefer ipv4
+%{ endfor ~}
