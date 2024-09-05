@@ -1,6 +1,6 @@
 #cloud-config
-fqdn: ${fqdn}
 
+fqdn: ${fqdn}
 packages:
 %{ for pkg in jsondecode(packages) ~}
 - ${pkg}
@@ -30,14 +30,9 @@ write_files:
   encoding: b64
   content: ${haproxy_config}
 
-- path: /custom-cloud-init-done
-  owner: root:root
-  permissions: '0644'
-  defer: true
-  encoding: b64
-  content: "MQo="
-
 runcmd:
 ### system requirements
 - 'systemctl restart systemd-resolved'
+- 'systemctl enable haproxy'
+- 'systemctl restart haproxy'
 ###

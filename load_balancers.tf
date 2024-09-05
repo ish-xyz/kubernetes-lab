@@ -58,10 +58,3 @@ data "template_file" "load_balancer_cloud_init" {
         haproxy_config = base64decode(data.template_file.load_balancer_haproxy_cfg.rendered)
     }
 }
-###
-# cloud init config
-## add user zero
-## install haproxy
-## import haproxy config
-## add dns configurations
-##
