@@ -78,12 +78,26 @@ write_files:
   content: ${unit.content}
 %{ endfor ~}
 
+- path: /etc/kubernetes/default-roles.yaml
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${default_roles}
+
+- path: /etc/containerd/config.toml
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${containerd_config}
+
 - path: /etc/hosts
   owner: root:root
   permissions: '0644'
   defer: true
   encoding: b64
-  content: ${hosts_file}
+  content: ${hosts_config}
 
 - path: /etc/systemd/resolved.conf
   owner: root:root
@@ -100,10 +114,14 @@ write_files:
   content: "MQo="
 
 runcmd:
-### requirements
-- [systemctl, restart, systemd-resolved]
+### system requirements
+- 'systemctl restart systemd-resolved'
+- 'swapoff -a'
+###
 
-### binaries preparation
+### download binaries
+- 'curl -L -o /tmp/crictl.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/${kube_version}/crictl-${kube_version}-linux-${arch}.tar.gz'
+- 'curl -L -o /tmp/containerd.tar.gz https://github.com/containerd/containerd/releases/download/v${containerd_version}/containerd-${containerd_version}-linux-${arch}.tar.gz'
 - 'curl -L -o /usr/local/bin/kube-controller-manager https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager'
 - 'curl -L -o /usr/local/bin/kube-scheduler https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-scheduler'
 - 'curl -L -o /usr/local/bin/kube-apiserver https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver'
@@ -111,10 +129,18 @@ runcmd:
 - 'curl -L -o /usr/local/bin/kube-proxy https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy'
 - 'curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl'
 - 'curl -L -o /tmp/${etcd_full_version}.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz'
-- 'tar -xvf /tmp/${etcd_full_version}.tar.gz -C /tmp'
-- 'mv /tmp/${etcd_full_version}/etcd /usr/local/bin/'
-- 'mv /tmp/${etcd_full_version}/etcdctl /usr/local/bin/'
-- 'mv /tmp/${etcd_full_version}/etcdutl /usr/local/bin/'
+
+###  extract binaries
+- 'mkdir /tmp/crictl; tar -xvf /tmp/crictl.tar.gz -C /tmp/crictl/'
+- 'mkdir /tmp/container; tar -xvf /tmp/containerd.tar.gz -C /tmp/containerd/'
+- 'mkdir /tmp/etcd; tar -xvf /tmp/${etcd_full_version}.tar.gz -C /tmp'
+
+### move binaries
+- 'mv /tmp/crictl/crictl /usr/local/bin/'
+- 'mv /tmp/containerd/bin/containerd /usr/local/bin/'
+- 'mv /tmp/etcd/${etcd_full_version}/etcd /usr/local/bin/'
+- 'mv /tmp/etcd/${etcd_full_version}/etcdctl /usr/local/bin/'
+- 'mv /tmp/etcd/${etcd_full_version}/etcdutl /usr/local/bin/'
 - 'chmod +x /usr/local/bin/*'
 ###
 

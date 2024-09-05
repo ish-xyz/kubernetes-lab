@@ -38,6 +38,11 @@ variable "architecture" {
     default = "amd64"
 }
 
+variable "containerd_version" {
+    type = string
+    default = "1.7.16"
+}
+
 variable "etcd_version" {
     type = string
     default = "v3.5.15"

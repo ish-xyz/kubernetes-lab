@@ -60,14 +60,14 @@ resource "tls_locally_signed_cert" "local" {
 }
 
 resource "local_file" "key-file" {
-    count           = var.key_filename == "attribute_only" ? 0 : 1
+  count           = var.key_filename == "attribute_only" ? 0 : 1
 	content         = tls_private_key.service.private_key_pem
 	filename        = var.key_filename
 	file_permission = "0600"
 }
 
 resource "local_file" "cert-file" {
-    count           = var.cert_filename == "attribute_only" ? 0 : 1
+  count           = var.cert_filename == "attribute_only" ? 0 : 1
 	content         = tls_locally_signed_cert.local.cert_pem
 	filename        = var.cert_filename
 	file_permission = "0644"

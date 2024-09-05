@@ -155,6 +155,8 @@ data "template_file" "kube_scheduler_config" {
     }
 }
 
+## Kubeconfig files
+
 data "template_file" "kubeconfig_admin" {
     template = file("${path.module}/templates/os-config/kubeconfig-admin.tftpl")
     vars = {
@@ -175,6 +177,16 @@ data "template_file" "kubeconfig_controller_manager" {
     }
 }
 
+data "template_file" "kubeconfig_kube_scheduler" {
+    template = file("${path.module}/templates/os-config/kubeconfig-kube-scheduler.tftpl")
+    vars = {
+      ca_crt = base64encode(module.ca.ca_cert)
+      cluster_name = var.cluster_name
+      kube_scheduler_crt = base64encode(module.kube-scheduler.cert)
+      kube_scheduler_key = base64encode(module.kube-scheduler.key)
+    }
+}
+
 data "template_file" "kubeconfig_kube_proxy" {
     template = file("${path.module}/templates/os-config/kubeconfig-kube-proxy.tftpl")
     vars = {
@@ -185,13 +197,15 @@ data "template_file" "kubeconfig_kube_proxy" {
     }
 }
 
-data "template_file" "kubeconfig_kube_scheduler" {
-    template = file("${path.module}/templates/os-config/kubeconfig-kube-scheduler.tftpl")
+data "template_file" "kubeconfig_kubelet" {
+    for_each = toset(local.controllers_set)
+    template = file("${path.module}/templates/os-config/kubeconfig-kubelet.tftpl")
     vars = {
       ca_crt = base64encode(module.ca.ca_cert)
+      node_name = each.value
       cluster_name = var.cluster_name
-      kube_scheduler_crt = base64encode(module.kube-scheduler.cert)
-      kube_scheduler_key = base64encode(module.kube-scheduler.key)
+      kubelet_crt = base64encode(module.kubelet-controllers[each.key].cert)
+      kubelet_key = base64encode(module.kubelet-controllers[each.key].key)
     }
 }
 
@@ -214,18 +228,27 @@ data "template_file" "cloud_init_controllers" {
   vars = {
     fqdn = "${each.value}.${var.domain}"
     domain = var.domain
-    dns_config = base64encode(data.template_file.resolved_config.rendered)
-
     etcd_full_version = var.etcd_full_version
     etcd_version = var.etcd_version
-
     kube_version = var.kube_version
+    containerd_version = var.containerd_version
     kube_config_dir = local.kube_config_dir
     kube_certs_dir = local.kube_certs_dir
     arch = var.architecture
 
-    packages = jsonencode(["socat", "conntrack", "ipset", "net-tools"])
-    hosts_file = base64encode(file("${path.module}/files/hosts.tftpl"))
+    # install packages
+    packages = jsonencode([
+      "socat", 
+      "conntrack", 
+      "ipset", 
+      "net-tools",
+    ])
+
+    # write files
+    dns_config = base64encode(data.template_file.resolved_config.rendered)
+    hosts_config = base64encode(file("${path.module}/files/hosts"))
+    containerd_config = base64encode(file("${path.module}/files/containerd.toml"))
+    default_roles = base64encode(file("${path.module}/files/default-roles.yaml"))
     systemd_units = jsonencode([
       {
         name = "etcd"
@@ -243,27 +266,24 @@ data "template_file" "cloud_init_controllers" {
         name = "kube-scheduler"
         content = base64encode(data.template_file.kube_scheduler_systemd_unit.rendered)
       },
-      # {
-      #   name = "kube-proxy"
-      #   content = base64encode(data.template_file.kube_proxy_systemd_unit.rendered)
-      # },
-      # {
-      #   name = "kubelet"
-      #   content = base64encode(data.template_file.kubelet_systemd_unit.rendered)
-      # },
-      # {
-      #   name = "containerd"
-      #   content = base64encode(data.template_file.containerd_systemd_unit.rendered)
-      # }
+      {
+        name = "kube-proxy"
+        content = base64encode(data.template_file.kube_proxy_systemd_unit.rendered)
+      },
+      {
+        name = "containerd"
+        content = base64encode(data.template_file.containerd_systemd_unit.rendered)
+      },
+      {
+        name = "kubelet"
+        content = base64encode(data.template_file.kubelet_systemd_unit.rendered)
+      },
+
     ])
     kube_configs = jsonencode([
       {
-        name = "encryption-config.yaml"
-        content = base64encode(data.template_file.etcd_encryption_config.rendered)
-      },
-      {
-        name = "kube-scheduler.yaml"
-        content = base64encode(data.template_file.kube_scheduler_config.rendered)
+        name    = "kubelet.kubeconfig"
+        content = base64encode(data.template_file.kubeconfig_kubelet[each.key].rendered)
       },
       {
         name    = "admin.kubeconfig"
@@ -282,11 +302,15 @@ data "template_file" "cloud_init_controllers" {
         content = base64encode(data.template_file.kubeconfig_kube_scheduler.rendered)
       },
       {
+        name    = "encryption-config.yaml"
+        content = base64encode(data.template_file.etcd_encryption_config.rendered)
+      },
+      {
         name    = "kube-scheduler.yaml"
         content = base64encode(data.template_file.kube_scheduler_config.rendered)
       },
       {
-        name = "kubelet-config.yaml"
+        name    = "kubelet-config.yaml"
         content = base64encode(data.template_file.kubelet_config.rendered)
       }
     ])
