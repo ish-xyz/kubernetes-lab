@@ -5,7 +5,7 @@ docker exec ${container_name} mkdir -p /files/certs /var/lib/etcd
 ls tmp/ | while read l; do docker cp tmp/$l ${container_name}:/usr/local/bin/$l; done
 ls files/certs/ | grep -e etcd -e ca.crt -e ca.key | grep -v csr | while read l; do docker cp files/certs/$l ${container_name}:/files/certs/$l; done
 etcdctl --cacert=/files/certs/ca.crt --key=/files/certs/etcd-client.key --cert=/files/certs/etcd-client.crt member list
-etcdctl --cacert=/etc/etcd/ssl/ca.crt --key=/etc/etcd/ssl/etcd-client.key --cert=/etc/etcd/ssl/etcd-client.crt member list
+
 etcdctl --cacert=/files/certs/ca.crt --key=/files/certs/etcd-client.key --cert=/files/certs/etcd-client.crt put greeting "Hello, etcd"
 
 
@@ -29,3 +29,13 @@ etcdctl --cacert=/files/certs/ca.crt --key=/files/certs/etcd-client.key --cert=/
                     --advertise-client-urls 'https://0.0.0.0:2379,https://0.0.0.0:4001' --initial-cluster-token abba \
                     --initial-cluster controller-0-mytestcluster=https://controller-0-mytestcluster:2380,controller-1-mytestcluster=https://controller-1-mytestcluster:2380,controller-2-mytestcluster=https://controller-2-mytestcluster:2380 \
                     --initial-cluster-state new
+
+
+
+
+
+
+
+
+SMOKE tests
+etcdctl --cacert=/etc/etcd/ssl/ca.crt --key=/etc/etcd/ssl/etcd-client.key --cert=/etc/etcd/ssl/etcd-client.crt member list

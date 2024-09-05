@@ -24,6 +24,7 @@ resource "aws_instance" "controllers" {
   }
 }
 
+
 # S3 for Cloud-init config
 resource "aws_s3_bucket" "config_bucket" {
   bucket = "cloud-init-configurations"
