@@ -1,11 +1,7 @@
 package main
 
 func main() {
-
-}
-
-// add cli configuration
-
-func checkOrigCtrlPlaneStatus() {
-
+	// load configuration file
+	// deploy CNI
+	//
 }

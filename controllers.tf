@@ -206,6 +206,7 @@ data "template_file" "cloud_init_controllers" {
     etcd_full_version = var.etcd_full_version
     etcd_version = var.etcd_version
     kube_version = var.kube_version
+    runc_version = var.runc_version
     containerd_version = var.containerd_version
     kube_config_dir = local.kube_config_dir
     kube_certs_dir = local.kube_certs_dir

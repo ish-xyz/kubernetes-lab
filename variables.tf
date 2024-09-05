@@ -38,6 +38,11 @@ variable "containerd_version" {
     default = "1.7.16"
 }
 
+variable "runc_version" {
+    type = string
+    default = "v1.1.14"
+}
+
 variable "etcd_version" {
     type = string
     default = "v3.5.15"
