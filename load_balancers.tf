@@ -31,14 +31,13 @@ resource "aws_route53_record" "kube_apiserver_external" {
   name    = "kube-apiserver-${var.cluster_name}"
   type    = "CNAME"
   ttl     = 300
-  records = [each.value.name]
+  records = ["${each.value.name}.${var.domain}"]
 
   weighted_routing_policy {
-    weight = 100
+      weight = 100
   }
   set_identifier = "kube_apiserver_to_lb_${each.key}"
 }
-
 
 data "template_file" "load_balancer_haproxy_cfg" {
     template = file("${path.module}/templates/load-balancers/haproxy.cfg.tftpl")
@@ -53,8 +52,8 @@ data "template_file" "load_balancer_cloud_init" {
     template = file("${path.module}/templates/load-balancers/cloud-init.yaml.tftpl")
     vars = {
         fqdn = "${each.value}.${var.domain}"
-        packages = jsondecode(["haproxy", "net-tools"])
+        packages = jsonencode(["haproxy", "net-tools"])
         resolved_config = base64encode(data.template_file.resolved_config.rendered)
-        haproxy_config = base64decode(data.template_file.load_balancer_haproxy_cfg.rendered)
+        haproxy_config = base64encode(data.template_file.load_balancer_haproxy_cfg.rendered)
     }
 }

@@ -41,6 +41,4 @@ backend kubernetes-backend
     balance roundrobin
 %{ for srv in jsondecode(backend_servers) ~}
     server ${srv} ${srv}.${domain}:6443 check resolvers local_dns resolve-prefer ipv4
-    server ${srv} ${srv}.${domain}:6443 check resolvers local_dns resolve-prefer ipv4
-    server ${srv} ${srv}.${domain}:6443 check resolvers local_dns resolve-prefer ipv4
 %{ endfor ~}
