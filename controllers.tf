@@ -1,4 +1,4 @@
-# Compute resources
+# Controllers Compute resources
 resource "aws_instance" "controllers" {
   for_each                    = toset(local.controllers_set)
   ami                         = var.ami
@@ -24,6 +24,14 @@ resource "aws_instance" "controllers" {
   }
 }
 
+# ETCD token
+resource "random_password" "etcd_token" {
+  length           = 16
+  special          = false
+  lifecycle {
+    create_before_destroy = true
+  }
+}
 
 # S3 for Cloud-init config
 resource "aws_s3_bucket" "config_bucket" {
@@ -36,33 +44,6 @@ resource "aws_s3_object" "controllers_cloud_init_config" {
   bucket = aws_s3_bucket.config_bucket.id
   key    = "${var.cluster_name}/${each.value}-config.yaml"
   content = data.template_file.cloud_init_controllers[each.key].rendered
-}
-
-# DNS Config
-data "aws_route53_zone" "compute_zone" {
-  zone_id      = var.route53_zone_id
-}
-
-resource "random_password" "etcd_token" {
-  length           = 16
-  special          = false
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_route53_record" "www" {
-  for_each  = aws_instance.controllers
-  zone_id   = data.aws_route53_zone.compute_zone.zone_id
-  name      = each.value.tags["Name"]
-  type      = "A"
-  ttl       = 300
-  records   = [each.value.private_ip]
-}
-
-data "dns_a_record_set" "name_servers" {
-  for_each = toset(data.aws_route53_zone.compute_zone.name_servers)
-  host = each.value
 }
 
 # Templates
@@ -221,7 +202,7 @@ data "template_file" "resolved_config" {
     }
 }
 
-## Main Cloud Init Config
+## Controllers Cloud Init Config
 data "template_file" "cloud_init_controllers" {
   for_each  = toset(local.controllers_set)
   template  = file("${path.module}/templates/cloud-init/controllers.yaml.tftpl")

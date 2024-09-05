@@ -105,7 +105,8 @@ module "kube-apiserver" {
         "kubernetes.svc.cluster.local",
         "server.kubernetes.local",
         "api-server.kubernetes.local",
-        "apiserver.kubernetes.local"
+        "apiserver.kubernetes.local",
+        "kube-apiserver-${var.cluster_name}.${var.domain}",
     ]
 
     validity_period	= 8760
