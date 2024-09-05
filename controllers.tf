@@ -1,4 +1,4 @@
-# Controllers Compute resources
+# Controllers compute resources
 resource "aws_instance" "controllers" {
   for_each                    = toset(local.controllers_set)
   ami                         = var.ami
@@ -24,6 +24,16 @@ resource "aws_instance" "controllers" {
   }
 }
 
+# DNS Records for controllers
+resource "aws_route53_record" "controllers" {
+  for_each  = aws_instance.controllers
+  zone_id   = data.aws_route53_zone.compute_zone.zone_id
+  name      = each.value.tags["Name"]
+  type      = "A"
+  ttl       = 300
+  records   = [each.value.private_ip]
+}
+
 # ETCD token
 resource "random_password" "etcd_token" {
   length           = 16
@@ -31,12 +41,6 @@ resource "random_password" "etcd_token" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-# S3 for Cloud-init config
-resource "aws_s3_bucket" "config_bucket" {
-  bucket = "cloud-init-configurations"
-  force_destroy = true
 }
 
 resource "aws_s3_object" "controllers_cloud_init_config" {

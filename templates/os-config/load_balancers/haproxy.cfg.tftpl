@@ -1,0 +1,44 @@
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    chroot /var/lib/haproxy
+    stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
+
+    # Add these lines for DNS resolution
+    resolvers local_dns
+        nameserver dns1 127.0.0.53:53
+        resolve_retries 3
+        timeout resolve 1s
+        timeout retry   1s
+        hold other      10s
+        hold refused    10s
+        hold nx         10s
+        hold timeout    10s
+        hold valid      10s
+
+defaults
+    log global
+    mode tcp
+    option tcplog
+    option dontlognull
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
+
+frontend kubernetes-frontend
+    bind *:6443
+    mode tcp
+    option tcplog
+    default_backend kubernetes-backend
+
+backend kubernetes-backend
+    mode tcp
+    option tcp-check
+    balance roundrobin
+    server controller-0-mytestcluster controller-0-mytestcluster.compute.zone:6443 check resolvers local_dns resolve-prefer ipv4
+    server controller-1-mytestcluster controller-1-mytestcluster.compute.zone:6443 check resolvers local_dns resolve-prefer ipv4
+    server controller-2-mytestcluster controller-2-mytestcluster.compute.zone:6443 check resolvers local_dns resolve-prefer ipv4
