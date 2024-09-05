@@ -133,7 +133,7 @@ runcmd:
 ###  extract binaries
 - 'mkdir /tmp/crictl; tar -xvf /tmp/crictl.tar.gz -C /tmp/crictl/'
 - 'mkdir /tmp/containerd; tar -xvf /tmp/containerd.tar.gz -C /tmp/containerd/'
-- 'mkdir /tmp/etcd; tar -xvf /tmp/${etcd_full_version}.tar.gz -C /tmp'
+- 'mkdir /tmp/etcd; tar -xvf /tmp/${etcd_full_version}.tar.gz -C /tmp/etcd/'
 
 ### move binaries
 - 'mv /tmp/crictl/crictl /usr/local/bin/'
