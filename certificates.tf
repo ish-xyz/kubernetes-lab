@@ -87,8 +87,8 @@ module "kube-apiserver" {
     ca_cert		    = module.ca.ca_cert
     ca_key		    = module.ca.ca_key
 
-    CN			    = "system:kube-scheduler"
-    O			    = "system:system:kube-scheduler"
+    CN			    = "kubernetes"
+    O			    = ""
     OU			    = var.cluster_name
     C		        = "United Kingdom"
     ST              = "London"
