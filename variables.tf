@@ -79,6 +79,11 @@ variable "subnet_id" {
     default = "subnet-6c9a2b25"
 }
 
+variable "node_ports_range" {
+    type = string
+    default = "30000-32767"
+}
+
 variable "key_name" {
     type = string
     default = "capi-demo"
@@ -91,7 +96,7 @@ variable "controllers_count" {
     default = 3
 }
 
-variable "nodes_count" {
+variable "workers_count" {
     type = number
     default = 3
 }
@@ -106,7 +111,7 @@ variable "load_balancers_instance_type" {
     default = "t3.medium" 
 }
 
-variable "nodes_instance_type" {
+variable "workers_instance_type" {
     type = string
     default = "t3.medium" 
 }

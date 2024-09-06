@@ -1,0 +1,18 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/kubernetes/kubernetes
+After=containerd.service
+Requires=containerd.service
+
+[Service]
+# kubelet needs to run as root
+ExecStart=/usr/local/bin/kubelet \
+  --config=${kube_config_dir}/kubelet-config.yaml \
+  --kubeconfig=${kube_config_dir}/kubelet.kubeconfig \
+  --register-node=true \
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

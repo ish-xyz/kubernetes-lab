@@ -1,5 +1,5 @@
-resource "aws_iam_role" "kube_controllers_role" {
-  name = "kube-controllers"
+resource "aws_iam_role" "kube_nodes" {
+  name = "kube-nodes"
 
   assume_role_policy = <<EOF
 {
@@ -17,12 +17,12 @@ resource "aws_iam_role" "kube_controllers_role" {
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "kube_controllers_role_attachment" {
+resource "aws_iam_role_policy_attachment" "kube_nodes_s3_read_only" {
   role       = aws_iam_role.kube_controllers_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
 }
 
-resource "aws_iam_instance_profile" "kube_controllers_profile" {
-  name = "kube-controllers"
-  role = aws_iam_role.kube_controllers_role.name
+resource "aws_iam_instance_profile" "kube_nodes" {
+  name = "kube-nodes-s3-read-only"
+  role = aws_iam_role.kube_nodes.name
 }

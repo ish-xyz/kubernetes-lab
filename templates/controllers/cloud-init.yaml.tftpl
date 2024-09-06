@@ -127,7 +127,6 @@ runcmd:
 - 'curl -L -o /usr/local/bin/kube-apiserver https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-apiserver'
 - 'curl -L -o /usr/local/bin/kubelet https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubelet'
 - 'curl -L -o /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/${runc_version}/runc.${arch}'
-- 'curl -L -o /usr/local/bin/kube-proxy https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-proxy'
 - 'curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl'
 - 'curl -L -o /tmp/${etcd_full_version}.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz'
 

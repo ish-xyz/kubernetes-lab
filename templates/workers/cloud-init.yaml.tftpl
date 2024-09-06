@@ -1,0 +1,106 @@
+#cloud-config
+fqdn: ${fqdn}
+packages:
+%{ for pkg in jsondecode(packages) ~}
+- ${pkg}
+%{ endfor ~}
+users:
+- name: zero
+  gecos: zero
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  shell: /bin/bash
+  lock_passwd: true
+  ssh_authorized_keys:
+    - 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCDLbwGSWj/Y0b9uoVqJzr0BNqAAMgcapiEO6CSSmCnaCWzjEbGxHmvnghsKHqo291H08UKlMSqRocVD3kj/vlqquregAaYTZeNg2ZY1kqDw49X8cVNjukggtH23BbRmXgSXuBaHQaN2XtL2pOnZTRhnedSyVCVVazzrGOuGELCxUd+HnADUIaIf1hD/WiKxNxMT4YqWmkmdxgyC0Fp4eeU/W+eCzmsZeGgxW9DG77e9te76p3wi5Hj/8oj/U8nwY78UhkP+mAuw+c4YjoADVskz3yCK2yRQPPOiF3s1lS1kM5qv/GLUsgGCpqgUJo16rziOBccn0AX+oGvzrGoiJd1'
+- name: etcd
+  gecos: etcd
+  shell: /usr/sbin/nologin
+  lock_passwd: true
+
+- name: kubernetes
+  gecos: kubernetes
+  shell: /usr/sbin/nologin
+  lock_passwd: true
+
+write_files:
+
+# Kubernetes Configuration Files
+%{ for conf in jsondecode(kube_configs) ~}
+- path: ${kube_config_dir}/${conf.name}
+  owner: kubernetes:kubernetes
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${conf.content}
+%{ endfor ~}
+
+# Kubernetes Certificates
+%{ for cert in jsondecode(kube_certs) ~}
+- path: ${kube_certs_dir}/${cert.name}
+  owner: kubernetes:kubernetes
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${cert.content}
+%{ endfor ~}
+
+# System Units
+%{ for unit in jsondecode(systemd_units) ~}
+- path: /etc/systemd/system/${unit.name}.service
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${unit.content}
+%{ endfor ~}
+
+- path: /etc/containerd/config.toml
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${containerd_config}
+
+- path: /etc/systemd/resolved.conf
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: ${dns_config}
+
+- path: /custom-cloud-init-done
+  owner: root:root
+  permissions: '0644'
+  defer: true
+  encoding: b64
+  content: "MQo="
+
+runcmd:
+### system requirements
+- 'systemctl restart systemd-resolved'
+- 'swapoff -a'
+###
+
+### download binaries
+- 'curl -L -o /tmp/crictl.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/${kube_version}/crictl-${kube_version}-linux-${arch}.tar.gz'
+- 'curl -L -o /tmp/containerd.tar.gz https://github.com/containerd/containerd/releases/download/v${containerd_version}/containerd-${containerd_version}-linux-${arch}.tar.gz'
+- 'curl -L -o /usr/local/bin/kubelet https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubelet'
+- 'curl -L -o /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/${runc_version}/runc.${arch}'
+- 'curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl'
+
+###  extract binaries
+- 'mkdir /tmp/crictl; tar -xvf /tmp/crictl.tar.gz -C /tmp/crictl/'
+- 'mkdir /tmp/containerd; tar -xvf /tmp/containerd.tar.gz -C /tmp/containerd/'
+
+### move binaries
+- 'mv /tmp/crictl/crictl /usr/local/bin/'
+- 'mv /tmp/containerd/bin/* /usr/local/bin/'
+- 'chmod +x /usr/local/bin/*'
+###
+
+### new systemd units
+%{ for unit in jsondecode(systemd_units) ~}
+- [systemctl, enable, ${unit.name}]
+- [systemctl, start, ${unit.name}]
+%{ endfor ~}
+###

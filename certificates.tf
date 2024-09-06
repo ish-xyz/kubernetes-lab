@@ -52,21 +52,6 @@ module "kube-controller-manager" {
     validity_period	= 8760
 }
 
-module "kube-proxy" {
-    source          = "./submodules/tls-generator"
-    ca_cert		    = module.ca.ca_cert
-    ca_key		    = module.ca.ca_key
-
-    CN			    = "system:kube-proxy"
-    O			    = "system:node-proxier"
-    OU			    = var.cluster_name
-    C		        = "United Kingdom"
-    ST              = "London"
-    L		        = "London"
-
-    validity_period	= 8760
-}
-
 module "kube-scheduler" {
     source          = "./submodules/tls-generator"
     ca_cert		    = module.ca.ca_cert
@@ -152,9 +137,28 @@ module "etcd-client" {
     validity_period	= 8760
 }
 
-module "kubelet-controllers" {
+module "controllers-kubelet" {
     source          = "./submodules/tls-generator"
     for_each        = toset(local.controllers_set)
+    ca_cert		    = module.ca.ca_cert
+    ca_key		    = module.ca.ca_key
+
+    CN			    = "system:node:${each.value}"
+    O			    = "system:nodes"
+    OU			    = var.cluster_name
+    C		        = "United Kingdom"
+    ST              = "London"
+    L		        = "London"
+
+    ip_addresses = ["127.0.0.1"]
+    dns_names = [each.value]
+
+    validity_period	= 8760
+}
+
+module "workers-kubelet" {
+    source          = "./submodules/tls-generator"
+    for_each        = toset(local.workers_set)
     ca_cert		    = module.ca.ca_cert
     ca_key		    = module.ca.ca_key
 
