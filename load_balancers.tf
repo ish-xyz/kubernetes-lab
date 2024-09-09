@@ -28,7 +28,7 @@ resource "aws_route53_record" "kube_apiserver_external" {
   for_each = aws_route53_record.load_balancers
 
   zone_id = data.aws_route53_zone.compute_zone.zone_id
-  name    = "kube-apiserver-${var.cluster_name}"
+  name    = "${local.lb_apiserver_address}"
   type    = "CNAME"
   ttl     = 300
   records = ["${each.value.name}.${var.domain}"]

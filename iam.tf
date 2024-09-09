@@ -18,7 +18,7 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "kube_nodes_s3_read_only" {
-  role       = aws_iam_role.kube_controllers_role.name
+  role       = aws_iam_role.kube_nodes.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
 }
 

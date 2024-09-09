@@ -33,9 +33,10 @@ etcdctl --cacert=/files/certs/ca.crt --key=/files/certs/etcd-client.key --cert=/
 
 
 
-
-
-
-
-SMOKE tests
+---------------
+~ SMOKE tests ~
+---------------
 etcdctl --cacert=/etc/etcd/ssl/ca.crt --key=/etc/etcd/ssl/etcd-client.key --cert=/etc/etcd/ssl/etcd-client.crt member list
+kubectl --kubeconfig=/etc/kubernetes/admin.kubeconfig get nodes
+kubectl --kubeconfig=/etc/kubernetes/admin-lb.kubeconfig get nodes
+helm install cilium cilium/cilium --version 1.16.1 --namespace kube-system --set kubeProxyReplacement=true --set k8sServiceHost=kube-apiserver-mytestcluster.compute.zone --set k8sServicePort=6443

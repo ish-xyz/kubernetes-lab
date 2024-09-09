@@ -3,6 +3,8 @@ locals {
   controllers_set = [for i in range(var.controllers_count) : "controller-${i}-${var.cluster_name}"]
   workers_set = [for i in range(var.workers_count): "node-${i}-${var.cluster_name}"]
   load_balancers_set = [for i in range(var.load_balancers_count): "lb-${i}-${var.cluster_name}"]
+  lb_apiserver_address_short = "kube-apiserver-${var.cluster_name}"
+  lb_apiserver_address = "kube-apiserver-${var.cluster_name}.${var.domain}"
 
   ### ETCD Config
   etcd_nodes = [for i in range(var.controllers_count) : "controller-${i}-${var.cluster_name}"]

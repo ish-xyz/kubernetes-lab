@@ -91,7 +91,8 @@ module "kube-apiserver" {
         "server.kubernetes.local",
         "api-server.kubernetes.local",
         "apiserver.kubernetes.local",
-        "kube-apiserver-${var.cluster_name}.${var.domain}",
+        "${local.lb_apiserver_address_short}",
+        "${local.lb_apiserver_address}",
     ]
 
     validity_period	= 8760

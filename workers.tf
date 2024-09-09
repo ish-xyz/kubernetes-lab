@@ -81,6 +81,7 @@ data "template_file" "workers_kubeconfig_kubelet" {
       cluster_name = var.cluster_name
       kubelet_crt = base64encode(module.workers-kubelet[each.key].cert)
       kubelet_key = base64encode(module.workers-kubelet[each.key].key)
+      lb_apiserver_address = local.lb_apiserver_address
     }
 }
 
@@ -141,11 +142,11 @@ data "template_file" "workers_cloud_init" {
       },
       {
         name    = "kubelet.crt"
-        content = base64encode(module.kubelet-workers[each.key].cert)
+        content = base64encode(module.workers-kubelet[each.key].cert)
       },
       {
         name    = "kubelet.key"
-        content = base64encode(module.kubelet-workers[each.key].key)
+        content = base64encode(module.workers-kubelet[each.key].key)
       }
     ])
   }

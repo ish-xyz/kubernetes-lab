@@ -129,7 +129,7 @@ data "template_file" "controllers_kubelet_config" {
   }
 }
 
-data "template_file" "kube_scheduler_config" {
+data "template_file" "controllers_kube_scheduler_config" {
     template = file("${path.module}/templates/controllers/kube-scheduler-config.tftpl")
     vars = {
       kube_config_dir = "/etc/kubernetes"
@@ -302,11 +302,11 @@ data "template_file" "controllers_cloud_init" {
       },
       {
         name    = "kubelet.crt"
-        content = base64encode(module.kubelet-controllers[each.key].cert)
+        content = base64encode(module.controllers-kubelet[each.key].cert)
       },
       {
         name    = "kubelet.key"
-        content = base64encode(module.kubelet-controllers[each.key].key)
+        content = base64encode(module.controllers-kubelet[each.key].key)
       }
     ])
     etcd_certs = jsonencode([

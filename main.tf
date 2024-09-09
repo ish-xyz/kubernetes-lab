@@ -16,7 +16,7 @@ resource "aws_s3_bucket" "config_bucket" {
 
 # Shared OS configs
 data "template_file" "resolved_config" {
-    template = file("${path.module}/templates/os-config/resolved.conf.tftpl")
+    template = file("${path.module}/templates/shared/resolved.conf.tftpl")
     vars = {
       domain = var.domain
       aws_region = var.aws_region
