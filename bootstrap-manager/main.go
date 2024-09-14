@@ -2,16 +2,19 @@ package main
 
 func main() {
 	// load configuration file
-	// deploy kubernetes manifests
-	// deploy helm charts in order
+
+	// check etcd instances health and quantity
+	// get initialControlPlaneDriver
 
 	/*
-		performControlPlaneChecks: true
-		performEtcdChecks: true
+		initialDriver: systemd
+		desiredDriver: kubernetes
+		desiredEtcdCount: 3
 		preSwitchDeployments:
 		- chart: cilium
 		  valuesB64: ""
 		postSwitchDeployments:
+		- chart: coredns
 		- chart: cert-manager
 		  valuesB64: ""
 		- chart: argocd
