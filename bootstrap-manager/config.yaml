@@ -1,0 +1,10 @@
+kubeconfig: /etc/kubernetes/admin.kubeconfig
+leaderElection:
+  namespace: kube-system
+  configMap: bootstrap-manager-order
+
+# kubeApiServer:
+#   staticPodPath: /etc/kubernetes/static-pods/
+#   manifest: /etc/kubernetes/bootstrap-manager/kube-apiserver.yaml
+#   address: 127.0.0.1:6443
+#   caCert: /etc/kubernetes/ssl/ca.crt
