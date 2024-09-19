@@ -97,18 +97,43 @@ func createBootStrapData(kcl *kubernetes.Clientset, ns, cm, nodeName string) err
 			Name: cmName,
 			Labels: map[string]string{
 				"bootstrap-manager": "true",
-				"owner":             nodeName,
 			},
 		},
 		Data: map[string]string{
 			"apiServer":         "false",
 			"controllerManager": "false",
 			"scheduler":         "false",
+			"owner":             nodeName,
 		},
 	}
 	_, err := kcl.CoreV1().ConfigMaps(ns).Create(context.TODO(), &cmObj, metav1.CreateOptions{})
 
 	return err
+}
+
+func getConfigMap(namespace, name string, maxRetries, interval int) (corev1.ConfigMap, error) {
+
+	var cmObj *corev1.ConfigMap
+	var err error
+	var retry = 0
+	for {
+		cmObj, err = kcl.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if err != nil && retry >= maxRetries {
+			return err
+		}
+		if err != nil {
+			retry++
+		} else {
+			break
+		}
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+
+	return cmObj, err
+}
+
+func waitForCompletion() {
+	// logic
 }
 
 func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
@@ -123,25 +148,14 @@ func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
 		return objects.Items[i].CreationTimestamp.Before(&objects.Items[j].CreationTimestamp)
 	})
 
-	retry, retryLimit := 0, 10
-	interval := 5
 	for _, obj := range objects.Items {
 
-		var cmObj *corev1.ConfigMap
-		var err error
-		for {
-			cmObj, err = kcl.CoreV1().ConfigMaps(ns).Get(context.TODO(), obj.ObjectMeta.Name, metav1.GetOptions{})
-			if err != nil && retry >= retryLimit {
-				return err
-			}
-			if err != nil {
-				retry++
-			} else {
-				break
-			}
-			time.Sleep(time.Duration(interval) * time.Second)
+		cmObj, err := getConfigMap(ns, obj.Name, 10, 3)
+		if err != nil {
+			return err
 		}
 
+		// check until completed
 		if cmObj.Data["apiServer"] == "true" &&
 			cmObj.Data["controllerManager"] == "true" &&
 			cmObj.Data["scheduler"] == "true" {
@@ -150,9 +164,11 @@ func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
 			continue
 		}
 
-		// check status, if all true -> skip
-		// check object ownership
-		// if not ownership =>
+		if cmObj.Data["owner"] == nodeName {
+			performMigration()
+		} else {
+			waitForMigration()
+		}
 	}
 
 	return nil
