@@ -1,9 +1,8 @@
 kubeconfig: /home/waffle34/.kube/config
 nodeName: controller-0-mytestcluster
-orderManager:
-  nodes: 3
-  namespace: default
-  configmap: bootstrap-manager-order
+nodesCount: 3
+namespace: default
+prefix: bootstrap-manager
 
 # kubeApiServer:
 #   staticPodPath: /etc/kubernetes/static-pods/

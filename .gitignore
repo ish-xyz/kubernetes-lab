@@ -1,3 +1,4 @@
+bootstrap-manager/bootstrap-manager
 .terraform
 files/certs
 tmp-cloud-init.yaml
