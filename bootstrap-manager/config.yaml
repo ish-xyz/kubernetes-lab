@@ -5,7 +5,18 @@ sync:
   resources:
     namespace: default
     prefix: bootstrap-manager
-preMigration: []
+preMigration:
+  - driver: kubectl
+    manifest: /etc/kubernetes/default-roles.yaml
+  - driver: helm
+    repo: 
+      url: https://helm.cilium.io/
+      name: cilium
+    chart: 
+      name: cilium
+      version: 1.16.1
+      values: ""
+
 postMigration: []
 final: []
 # kubeApiServer:
