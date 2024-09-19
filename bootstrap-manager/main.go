@@ -17,9 +17,13 @@ import (
 type Config struct {
 	Kubeconfig string `yaml:"kubeconfig"`
 	NodeName   string `yaml:"nodeName"`
-	NodesCount int    `yaml:"nodesCount"`
-	Namespace  string `yaml:"namespace"`
-	Prefix     string `yaml:"prefix"`
+	Sync       struct {
+		NodesCount int `yaml:"nodesCount"`
+		Resources  struct {
+			Namespace string `yaml:"namespace"`
+			Prefix    string `yaml:"prefix"`
+		} `yaml:"resources"`
+	} `yaml:"sync"`
 }
 
 var (
@@ -91,13 +95,13 @@ func start(cmd *cobra.Command, args []string) error {
 	exec := executor.NewExecutor(
 		kcl,
 		"bootstrap-manager=true",
-		cfg.Namespace,
-		fmt.Sprintf("%s-%s", cfg.Prefix, cfg.NodeName),
+		cfg.Sync.Resources.Namespace,
+		fmt.Sprintf("%s-%s", cfg.Sync.Resources.Prefix, cfg.NodeName),
 		cfg.NodeName,
 	)
 	orch := orchestrator.NewOrchestrator(
 		exec,
-		cfg.Namespace,
+		cfg.Sync.Resources.Namespace,
 		cfg.NodeName,
 	)
 
