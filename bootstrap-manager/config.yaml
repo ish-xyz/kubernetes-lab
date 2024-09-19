@@ -1,9 +1,13 @@
 kubeconfig: /home/waffle34/.kube/config
 nodeName: controller-0-mytestcluster
-nodesCount: 3
-namespace: default
-prefix: bootstrap-manager
-
+sync:
+  nodesCount: 3
+  resources:
+    namespace: default
+    prefix: bootstrap-manager
+preMigration: []
+postMigration: []
+final: []
 # kubeApiServer:
 #   staticPodPath: /etc/kubernetes/static-pods/
 #   manifest: /etc/kubernetes/bootstrap-manager/kube-apiserver.yaml
