@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -81,7 +82,9 @@ func getKubeClient(kubeconfig string) (*kubernetes.Clientset, error) {
 
 func createBootStrapData(kcl *kubernetes.Clientset, ns, cm, nodeName string) error {
 
+	cmName := fmt.Sprintf("%s-%s", cm, nodeName)
 	delay := rand.Intn(5)
+
 	logrus.Infof("waiting for bootstrap delay of %ds ...", delay)
 	time.Sleep(time.Duration(delay) * time.Second)
 
@@ -91,7 +94,7 @@ func createBootStrapData(kcl *kubernetes.Clientset, ns, cm, nodeName string) err
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", cm, nodeName),
+			Name: cmName,
 			Labels: map[string]string{
 				"bootstrap-manager": "true",
 				"owner":             nodeName,
@@ -115,27 +118,42 @@ func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
 		return err
 	}
 
-	retry := 0
-	retryLimit := 10
+	// Sort configmaps by creation date
+	sort.Slice(objects.Items, func(i, j int) bool {
+		return objects.Items[i].CreationTimestamp.Before(&objects.Items[j].CreationTimestamp)
+	})
+
+	retry, retryLimit := 0, 10
 	interval := 5
-	for {
-		for _, obj := range objects.Items {
-			cmObj, err := kcl.CoreV1().ConfigMaps(ns).Get(context.TODO(), obj.ObjectMeta.Name, metav1.GetOptions{})
+	for _, obj := range objects.Items {
+
+		var cmObj *corev1.ConfigMap
+		var err error
+		for {
+			cmObj, err = kcl.CoreV1().ConfigMaps(ns).Get(context.TODO(), obj.ObjectMeta.Name, metav1.GetOptions{})
 			if err != nil && retry >= retryLimit {
 				return err
 			}
-
-			// check, if owner -> break
+			if err != nil {
+				retry++
+			} else {
+				break
+			}
+			time.Sleep(time.Duration(interval) * time.Second)
 		}
-		time.Sleep(time.Duration(interval) * time.Second)
-		retry++
-	}
 
-	// get all configmaps with label "bootstrap-manager": "true"
-	// check for owner
-	// if I am the owner
-	// 		start migration
-	// set to true when it's done
+		if cmObj.Data["apiServer"] == "true" &&
+			cmObj.Data["controllerManager"] == "true" &&
+			cmObj.Data["scheduler"] == "true" {
+
+			// node already migrated, skip to next one
+			continue
+		}
+
+		// check status, if all true -> skip
+		// check object ownership
+		// if not ownership =>
+	}
 
 	return nil
 }
