@@ -192,6 +192,7 @@ data "template_file" "controllers_cloud_init" {
     etcd_version = var.etcd_version
     kube_version = var.kube_version
     runc_version = var.runc_version
+    helm_version = var.helm_version
     containerd_version = var.containerd_version
     kube_config_dir = local.kube_config_dir
     kube_certs_dir = local.kube_certs_dir

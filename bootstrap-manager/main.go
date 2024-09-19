@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -45,23 +47,18 @@ func main() {
 	rootCmd.Execute()
 }
 
-func start(cmd *cobra.Command, args []string) error {
-	rand.Seed(uint64(time.Now().UnixNano()))
-	cfg, err := loadConfig(*kubeconfig)
+func loadConfig(cfgFile string) (*Config, error) {
+	var cfg *Config
+	fstream, err := os.ReadFile(cfgFile)
 	if err != nil {
-		return fmt.Errorf("failed to load configuration file: %v", err)
+		return nil, err
 	}
 
-	// TODO: validate configuration
-
-	kcl, err := getKubeClient(cfg.Kubeconfig)
+	err = yaml.Unmarshal(fstream, &cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	createBootStrapData(kcl, cfg.OrderManager.Namespace, cfg.OrderManager.ConfigMap, cfg.NodeName)
-	checkForMigration(kcl, cfg.OrderManager.Namespace)
-	return nil
+	return cfg, nil
 }
 
 func getKubeClient(kubeconfig string) (*kubernetes.Clientset, error) {
@@ -83,10 +80,10 @@ func getKubeClient(kubeconfig string) (*kubernetes.Clientset, error) {
 func createBootStrapData(kcl *kubernetes.Clientset, ns, cm, nodeName string) error {
 
 	cmName := fmt.Sprintf("%s-%s", cm, nodeName)
-	delay := rand.Intn(5)
+	delay := rand.Intn(5000) + 1000
 
-	logrus.Infof("waiting for bootstrap delay of %ds ...", delay)
-	time.Sleep(time.Duration(delay) * time.Second)
+	logrus.Infof("waiting for bootstrap delay of %dms ...", delay)
+	time.Sleep(time.Duration(delay) * time.Millisecond)
 
 	cmObj := corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -111,7 +108,7 @@ func createBootStrapData(kcl *kubernetes.Clientset, ns, cm, nodeName string) err
 	return err
 }
 
-func getConfigMap(namespace, name string, maxRetries, interval int) (corev1.ConfigMap, error) {
+func getConfigMapWithRetries(kcl *kubernetes.Clientset, namespace, name string, maxRetries, interval int) (*corev1.ConfigMap, error) {
 
 	var cmObj *corev1.ConfigMap
 	var err error
@@ -119,7 +116,7 @@ func getConfigMap(namespace, name string, maxRetries, interval int) (corev1.Conf
 	for {
 		cmObj, err = kcl.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil && retry >= maxRetries {
-			return err
+			return nil, err
 		}
 		if err != nil {
 			retry++
@@ -132,13 +129,53 @@ func getConfigMap(namespace, name string, maxRetries, interval int) (corev1.Conf
 	return cmObj, err
 }
 
-func waitForCompletion() {
-	// logic
+func waitForMigration(kcl *kubernetes.Clientset, namespace, name string, maxRetries, interval int) (bool, error) {
+
+	retry := 0
+	for {
+		cmObj, err := getConfigMapWithRetries(kcl, namespace, name, 5, 3)
+		if err != nil {
+			return false, err
+		}
+
+		if cmObj.Data["apiServer"] == "true" &&
+			cmObj.Data["controllerManager"] == "true" &&
+			cmObj.Data["scheduler"] == "true" {
+			return true, nil
+		}
+
+		if retry >= maxRetries {
+			break
+		} else {
+			retry++
+		}
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+	return false, nil
 }
 
-func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
+func performMigration(kcl *kubernetes.Clientset, cmObj *corev1.ConfigMap) error {
 
-	objects, err := kcl.CoreV1().ConfigMaps(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "bootstrap-manager=true"})
+	fmt.Println("(TODO) performing migration of this node! (3s)")
+
+	time.Sleep(3 * time.Second)
+
+	cmObj.Data["apiServer"] = "true"
+	cmObj.Data["controllerManager"] = "true"
+	cmObj.Data["scheduler"] = "true"
+
+	patchBytes, err := json.Marshal(cmObj)
+	if err != nil {
+		return err
+	}
+	_, err = kcl.CoreV1().ConfigMaps(cmObj.Namespace).Patch(context.TODO(), cmObj.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	return err
+}
+
+func migration(kcl *kubernetes.Clientset, namespace, nodeName string) error {
+
+	// TODO: check against desired number of configmaps and retry in case
+	objects, err := kcl.CoreV1().ConfigMaps(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "bootstrap-manager=true"})
 	if err != nil {
 		return err
 	}
@@ -150,7 +187,8 @@ func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
 
 	for _, obj := range objects.Items {
 
-		cmObj, err := getConfigMap(ns, obj.Name, 10, 3)
+		logrus.Infof("processing node: %s ...", obj.Name)
+		cmObj, err := getConfigMapWithRetries(kcl, namespace, obj.Name, 5, 3)
 		if err != nil {
 			return err
 		}
@@ -161,29 +199,52 @@ func checkForMigration(kcl *kubernetes.Clientset, ns string) error {
 			cmObj.Data["scheduler"] == "true" {
 
 			// node already migrated, skip to next one
+			logrus.Infof("node '%s' already migrated, skipping.", obj.Name)
 			continue
 		}
 
-		if cmObj.Data["owner"] == nodeName {
-			performMigration()
-		} else {
-			waitForMigration()
+		if cmObj.Data["owner"] != nodeName {
+			logrus.Infof("waiting for node's migration ('%s')...", obj.Name)
+			res, err := waitForMigration(kcl, namespace, cmObj.Name, 20, 15)
+			if err != nil {
+				return fmt.Errorf("failed while checking migration results for node %s with error: %v", obj.Name, err)
+			}
+			if !res {
+				return fmt.Errorf("migration for node %s took too long, aborting", obj.Name)
+			}
+		}
+
+		logrus.Infof("performing node migration ('%s')!", obj.Name)
+		err = performMigration(kcl, cmObj)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func loadConfig(cfgFile string) (*Config, error) {
-	var cfg *Config
-	fstream, err := os.ReadFile(cfgFile)
+func start(cmd *cobra.Command, args []string) error {
+
+	// TODO: add initial sleep time for original control plane to start
+
+	rand.Seed(uint64(time.Now().UnixNano()))
+	cfg, err := loadConfig(*kubeconfig)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to load configuration file: %v", err)
 	}
 
-	err = yaml.Unmarshal(fstream, &cfg)
+	// TODO: validate configuration
+
+	kcl, err := getKubeClient(cfg.Kubeconfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return cfg, nil
+
+	err = createBootStrapData(kcl, cfg.OrderManager.Namespace, cfg.OrderManager.ConfigMap, cfg.NodeName)
+	if err != nil {
+		return err
+	}
+
+	return migration(kcl, cfg.OrderManager.Namespace, cfg.NodeName)
 }

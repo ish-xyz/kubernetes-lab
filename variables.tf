@@ -33,6 +33,11 @@ variable "architecture" {
     default = "amd64"
 }
 
+variable "helm_version" {
+    type = string
+    default = "v3.16.0"
+}
+
 variable "containerd_version" {
     type = string
     default = "1.7.16"

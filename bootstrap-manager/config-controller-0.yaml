@@ -1,0 +1,5 @@
+kubeconfig: /home/waffle34/.kube/config
+nodeName: controller-0-mytestcluster
+orderManager:
+  namespace: default
+  configmap: bootstrap-manager-order
