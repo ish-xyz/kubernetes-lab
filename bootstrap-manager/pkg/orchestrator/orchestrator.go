@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/executor"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -15,16 +16,14 @@ import (
 )
 
 type Orchestrator struct {
-	Executor  *executor.Executor
-	Namespace string
-	NodeName  string
+	Executor *executor.Executor
+	Config   *config.Config
 }
 
-func NewOrchestrator(e *executor.Executor, ns, nodeName string) *Orchestrator {
+func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
 	return &Orchestrator{
-		Executor:  e,
-		Namespace: ns,
-		NodeName:  nodeName,
+		Executor: e,
+		Config:   cfg,
 	}
 }
 
@@ -74,7 +73,6 @@ func (o *Orchestrator) waitForMigration(namespace, name string, maxRetries, inte
 
 func (o *Orchestrator) RunMigrationWorkflow(namespace, nodeName string) error {
 
-	// TODO: check against desired number of configmaps and retry (run via executor)
 	objects, err := o.Executor.ListConfigMaps(3, 15, 5)
 	if err != nil {
 		return err
@@ -125,10 +123,36 @@ func (o *Orchestrator) RunMigrationWorkflow(namespace, nodeName string) error {
 }
 
 func (o *Orchestrator) RunMainWorkflow() error {
+
+	// TODO:
+	// pre-flight checks
+	// check systemd services
+	// check for api-server to come up
+
+	// PreMigration stesp
+	// o.RunPreMigrationWorkflow()
+
+	logrus.Infoln("starting pre migration workflow...")
+	for _, pkg := range o.Config.PreMigration {
+		logrus.Infof("package: %s with driver %s", pkg.Name, pkg.Driver)
+		if pkg.Driver == "helm" {
+			err := o.Executor.HelmInstall(pkg.Chart)
+			fmt.Println(err)
+		}
+	}
+
+	return nil
+
 	err := o.Executor.CreateBootstrapData()
 	if err != nil {
 		return err
 	}
 
-	return o.RunMigrationWorkflow(o.Namespace, o.NodeName)
+	return o.RunMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
+
+	// PostMigration
+	// o.RunPostMigrationWorkflow()
+
+	// Final steps
+	// o.RunFinalWorkflow()
 }

@@ -1,4 +1,4 @@
-kubeconfig: /home/waffle34/.kube/config
+kubeconfig: /Users/ishamaraia/.kube/config
 nodeName: controller-0-mytestcluster
 sync:
   nodesCount: 3
@@ -6,19 +6,24 @@ sync:
     namespace: default
     prefix: bootstrap-manager
 preMigration:
-  - driver: kubectl
+  - name: default-roles
+    driver: kubectl
     manifest: /etc/kubernetes/default-roles.yaml
-  - driver: helm
-    repo: 
+  - name: cilium-cni
+    driver: helm
+    chart:
       url: https://helm.cilium.io/
       name: cilium
-    chart: 
-      name: cilium
+      releaseName: cilium
       version: 1.16.1
+      namespace: ""
       values: ""
+migration:
+  - systemdUnit: kube-apiserver
+    manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
 
 postMigration: []
-final: []
+#finalChecks:
 # kubeApiServer:
 #   staticPodPath: /etc/kubernetes/static-pods/
 #   manifest: /etc/kubernetes/bootstrap-manager/kube-apiserver.yaml

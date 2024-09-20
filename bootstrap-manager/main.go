@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/executor"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/orchestrator"
 	"github.com/spf13/cobra"
@@ -13,18 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
-
-type Config struct {
-	Kubeconfig string `yaml:"kubeconfig"`
-	NodeName   string `yaml:"nodeName"`
-	Sync       struct {
-		NodesCount int `yaml:"nodesCount"`
-		Resources  struct {
-			Namespace string `yaml:"namespace"`
-			Prefix    string `yaml:"prefix"`
-		} `yaml:"resources"`
-	} `yaml:"sync"`
-}
 
 var (
 	rootCmd = cobra.Command{
@@ -45,8 +34,8 @@ func main() {
 	rootCmd.Execute()
 }
 
-func loadConfig(cfgFile string) (*Config, error) {
-	var cfg *Config
+func loadConfig(cfgFile string) (*config.Config, error) {
+	var cfg *config.Config
 	fstream, err := os.ReadFile(cfgFile)
 	if err != nil {
 		return nil, err
@@ -101,8 +90,7 @@ func start(cmd *cobra.Command, args []string) error {
 	)
 	orch := orchestrator.NewOrchestrator(
 		exec,
-		cfg.Sync.Resources.Namespace,
-		cfg.NodeName,
+		cfg,
 	)
 
 	return orch.RunMainWorkflow()
