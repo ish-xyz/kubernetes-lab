@@ -139,6 +139,8 @@ func (o *Orchestrator) RunMainWorkflow() error {
 			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
 			fmt.Println(err)
 		}
+		// speculative wait
+		time.Sleep(10 * time.Second)
 	}
 
 	return nil

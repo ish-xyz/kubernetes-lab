@@ -5,7 +5,10 @@ import (
 )
 
 type Executor struct {
-	KubeClient    *kubernetes.Clientset
+	KubeClient *kubernetes.Clientset
+	// Dynamic Client
+	// Discovery Client
+	// Rest Mapper
 	LabelSelector string // LabelSelector: "bootstrap-manager=true"
 	Namespace     string
 	CMName        string
