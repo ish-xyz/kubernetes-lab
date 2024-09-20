@@ -136,7 +136,7 @@ func (o *Orchestrator) RunMainWorkflow() error {
 	for _, pkg := range o.Config.PreMigration {
 		logrus.Infof("package: %s with driver %s", pkg.Name, pkg.Driver)
 		if pkg.Driver == "helm" {
-			err := o.Executor.HelmInstall(pkg.Chart)
+			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
 			fmt.Println(err)
 		}
 	}

@@ -8,8 +8,11 @@ import (
 
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/sirupsen/logrus"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	helmkube "helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
 )
 
@@ -69,9 +72,46 @@ func (e *Executor) helmDownload(url, chartName, chartVersion, outFilePath string
 	return err
 }
 
-func (e *Executor) HelmInstall(chart *config.ChartConfig) error {
+func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string) error {
+
 	outFilePath := fmt.Sprintf("%s/%s-%s.tgz", e.TempFolder, chart.Name, chart.Version)
-	return e.helmDownload(chart.Url, chart.Name, chart.Version, outFilePath)
+	err := e.helmDownload(chart.Url, chart.Name, chart.Version, outFilePath)
+	if err != nil {
+		return fmt.Errorf("helm download error => %v", err)
+	}
+
+	logrus.Infof("loading chart %s-%s ...", chart.Name, chart.Version)
+	chartObj, err := loader.Load(outFilePath)
+	if err != nil {
+		return fmt.Errorf("helm load error => %v", err)
+	}
+
+	actionConfig := new(action.Configuration)
+	err = actionConfig.Init(
+		helmkube.GetConfig(kubeconfigPath, "", chart.Namespace),
+		chart.Namespace,
+		os.Getenv("HELM_DRIVER"),
+		func(format string, v ...interface{}) {
+			logrus.Infof(format, v)
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("helm init error => %v", err)
+	}
+
+	logrus.Infof("installing chart %s-%s ...", chart.Name, chart.Version)
+	iCli := action.NewInstall(actionConfig)
+	iCli.Namespace = chart.Namespace
+	iCli.ReleaseName = chart.ReleaseName
+	iCli.IsUpgrade = true
+	rel, err := iCli.Run(chartObj, nil)
+	if err != nil {
+		return fmt.Errorf("helm install error => %v", err)
+	}
+
+	fmt.Println(err)
+	fmt.Println(rel)
+	return nil
 }
 
 /*
@@ -87,7 +127,7 @@ import (
     _ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-func main() {x§x§
+func main() {
     chartPath := "/tmp/my-chart-0.1.0.tgz"
     chart, err := loader.Load(chartPath)
     if err != nil {
