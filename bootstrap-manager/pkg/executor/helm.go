@@ -41,23 +41,33 @@ func (e *Executor) helmDownload(url, chartName, chartVersion, outFilePath string
 		return fmt.Errorf("error finding chart version: %v", err)
 	}
 
-	// Download the chart
-	//TODO: fix to work with HTTP
-	get, err := getter.All(cli.New()).ByScheme("https")
-	if err != nil {
-		return fmt.Errorf("failed to get getter by scheme 'https': %v", err)
+	// prepare for download
+	var get getter.Getter
+	if !strings.HasPrefix(url, "http://") {
+		get, err = getter.All(cli.New()).ByScheme("http")
+		if err != nil {
+			return fmt.Errorf("failed to get getter by scheme 'http': %v", err)
+		}
+	} else if strings.HasPrefix(url, "https://") {
+		get, err = getter.All(cli.New()).ByScheme("https")
+		if err != nil {
+			return fmt.Errorf("failed to get getter by scheme 'https': %v", err)
+		}
+	} else {
+		return fmt.Errorf("unsupported protocol in URL '%s'", url)
 	}
 
-	chartUrl := cv.URLs[0]
-	if !strings.HasPrefix(chartUrl, "http://") &&
-		!strings.HasPrefix(chartUrl, "https://") {
-		chartUrl = fmt.Sprintf(
+	chartAddress := cv.URLs[0]
+	if !strings.HasPrefix(chartAddress, "http://") &&
+		!strings.HasPrefix(chartAddress, "https://") {
+		chartAddress = fmt.Sprintf(
 			"%s/%s", strings.TrimRight(url, "/"),
-			strings.TrimLeft(chartUrl, "/"),
+			strings.TrimLeft(chartAddress, "/"),
 		)
 	}
 
-	chartBytes, err := get.Get(chartUrl)
+	// download chart
+	chartBytes, err := get.Get(chartAddress)
 	if err != nil {
 		return fmt.Errorf("error downloading chart: %v", err)
 	}
