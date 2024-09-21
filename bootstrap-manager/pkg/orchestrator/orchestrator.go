@@ -131,7 +131,7 @@ func (o *Orchestrator) runPreMigrationWorkflow() error {
 
 	logrus.Infoln("starting pre migration workflow...")
 	for _, pkg := range o.Config.PreMigration {
-		logrus.Infof("package: %s with driver %s", pkg.Name, pkg.Driver)
+		logrus.Infof("processing package: %s with driver %s", pkg.Name, pkg.Driver)
 		if pkg.Driver == "helm" {
 			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
 			if err != nil {
