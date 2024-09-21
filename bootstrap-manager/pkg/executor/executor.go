@@ -5,7 +5,8 @@ import (
 )
 
 type Executor struct {
-	KubeClient *kubernetes.Clientset
+	ClientsBundle map[string]interface{}
+	KubeClient    *kubernetes.Clientset
 	// Dynamic Client
 	// Discovery Client
 	// Rest Mapper

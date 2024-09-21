@@ -11,7 +11,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/rand"
 	yaml "gopkg.in/yaml.v2"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -48,20 +51,20 @@ func loadConfig(cfgFile string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func getKubeClient(kubeconfig string) (*kubernetes.Clientset, error) {
+func getKubeConfig(kubeconfigPath string) (*rest.Config, error) {
+	return clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+}
 
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	// create clientset (set of muliple clients) for each Group (e.g. Core),
-	// the Version (V1) of Group and Kind (e.g. Pods) so GVK.
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
+func getKubeClient(kubeconfig *rest.Config) (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(kubeconfig)
+}
 
-	return clientset, nil
+func getDynamicClient(kubeconfig *rest.Config) (*dynamic.DynamicClient, error) {
+	return dynamic.NewForConfig(kubeconfig)
+}
+
+func getDiscoveryClient(kubeconfig *rest.Config) (*discovery.DiscoveryClient, error) {
+	return discovery.NewDiscoveryClientForConfig(kubeconfig)
 }
 
 func start(cmd *cobra.Command, args []string) error {
@@ -74,12 +77,19 @@ func start(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load configuration file: %v", err)
 	}
 
+	kubeConfigObj, err := getKubeConfig(cfg.Kubeconfig)
+	if err != nil {
+		return fmt.Errorf("failed to get rest.Config from kubeconfig path '%s' => %v", cfg.Kubeconfig, err)
+	}
+
 	// TODO: validate configuration
 
-	kcl, err := getKubeClient(cfg.Kubeconfig)
+	kcl, err := getKubeClient(kubeConfigObj)
 	if err != nil {
 		return err
 	}
+
+	// TODO: get dynamic, discovery, restmapper
 
 	exec := executor.NewExecutor(
 		kcl,
