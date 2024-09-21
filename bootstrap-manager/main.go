@@ -12,9 +12,11 @@ import (
 	"golang.org/x/exp/rand"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -67,6 +69,10 @@ func getDiscoveryClient(kubeconfig *rest.Config) (*discovery.DiscoveryClient, er
 	return discovery.NewDiscoveryClientForConfig(kubeconfig)
 }
 
+func getRestMapper(dsc *discovery.DiscoveryClient) *restmapper.DeferredDiscoveryRESTMapper {
+	return restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dsc))
+}
+
 func start(cmd *cobra.Command, args []string) error {
 
 	// TODO: add initial sleep time for original control plane to start
@@ -89,10 +95,24 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	dvc, err := getDynamicClient(kubeConfigObj)
+	if err != nil {
+		return fmt.Errorf("failed to init the dynamic client: %v", err)
+	}
+
+	dsc, err := getDiscoveryClient(kubeConfigObj)
+	if err != nil {
+		return fmt.Errorf("failed to init the discovery client: %v", err)
+	}
+
+	rsm := getRestMapper(dsc)
 	// TODO: get dynamic, discovery, restmapper
 
 	exec := executor.NewExecutor(
 		kcl,
+		dsc,
+		dvc,
+		rsm,
 		"bootstrap-manager=true",
 		cfg.Sync.Resources.Namespace,
 		fmt.Sprintf("%s-%s", cfg.Sync.Resources.Prefix, cfg.NodeName),

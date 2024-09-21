@@ -1,30 +1,40 @@
 package executor
 
 import (
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/restmapper"
 )
 
 type Executor struct {
-	ClientsBundle map[string]interface{}
-	KubeClient    *kubernetes.Clientset
-	// Dynamic Client
-	// Discovery Client
-	// Rest Mapper
-	LabelSelector string // LabelSelector: "bootstrap-manager=true"
-	Namespace     string
-	CMName        string
-	NodeName      string
-	TempFolder    string
+	KubeClient      *kubernetes.Clientset
+	DynamicClient   *dynamic.DynamicClient
+	DiscoveryClient *discovery.DiscoveryClient
+	RestMapper      *restmapper.DeferredDiscoveryRESTMapper
+	LabelSelector   string
+	Namespace       string
+	CMName          string
+	NodeName        string
+	TempFolder      string
 }
 
-func NewExecutor(kcl *kubernetes.Clientset, ls, ns, cmn, nn string) *Executor {
-
+func NewExecutor(
+	kcl *kubernetes.Clientset,
+	dsc *discovery.DiscoveryClient,
+	dvc *dynamic.DynamicClient,
+	rsm *restmapper.DeferredDiscoveryRESTMapper,
+	ls, ns, cmn, nn string,
+) *Executor {
 	return &Executor{
-		CMName:        cmn,
-		KubeClient:    kcl,
-		LabelSelector: ls,
-		Namespace:     ns,
-		NodeName:      nn,
-		TempFolder:    "/tmp/",
+		CMName:          cmn,
+		KubeClient:      kcl,
+		DiscoveryClient: dsc,
+		DynamicClient:   dvc,
+		RestMapper:      rsm,
+		LabelSelector:   ls,
+		Namespace:       ns,
+		NodeName:        nn,
+		TempFolder:      "/tmp/",
 	}
 }
