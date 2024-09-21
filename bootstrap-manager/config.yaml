@@ -1,4 +1,4 @@
-kubeconfig: /Users/ishamaraia/.kube/config
+kubeconfig: /home/waffle34/.kube/config
 nodeName: controller-0-mytestcluster
 sync:
   nodesCount: 3
@@ -6,9 +6,9 @@ sync:
     namespace: default
     prefix: bootstrap-manager
 preMigration:
-  - name: default-roles
+  - name: random-files
     driver: kubectl
-    manifest: /etc/kubernetes/default-roles.yaml
+    manifest: /tmp/o.yaml
   - name: prometheus
     driver: helm
     chart:
@@ -17,7 +17,9 @@ preMigration:
       releaseName: prometheus
       version: "25.27.0"
       namespace: "default"
-      values: ""
+      values:
+        commonMetaLabels:
+          app: isham-is-here
 
   # - name: cilium-cni
   #   driver: helm

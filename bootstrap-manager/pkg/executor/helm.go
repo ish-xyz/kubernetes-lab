@@ -28,20 +28,21 @@ func (e *Executor) helmDownload(url, chartName, chartVersion, outFilePath string
 
 	index, err := r.DownloadIndexFile()
 	if err != nil {
-		return fmt.Errorf("Error downloading index file: %s\n", err)
+		return fmt.Errorf("error downloading index file: %v", err)
 	}
 
 	indexFile, err := repo.LoadIndexFile(index)
 	if err != nil {
-		return fmt.Errorf("Error loading index file: %s\n", err)
+		return fmt.Errorf("error loading index file: %v", err)
 	}
 
 	cv, err := indexFile.Get(chartName, chartVersion)
 	if err != nil {
-		return fmt.Errorf("Error finding chart version: %s\n", err)
+		return fmt.Errorf("error finding chart version: %v", err)
 	}
 
 	// Download the chart
+	//TODO: fix to work with HTTP
 	get, err := getter.All(cli.New()).ByScheme("https")
 	if err != nil {
 		return fmt.Errorf("failed to get getter by scheme 'https': %v", err)
@@ -58,12 +59,12 @@ func (e *Executor) helmDownload(url, chartName, chartVersion, outFilePath string
 
 	chartBytes, err := get.Get(chartUrl)
 	if err != nil {
-		return fmt.Errorf("Error downloading chart: %s\n", err)
+		return fmt.Errorf("error downloading chart: %v", err)
 	}
 
 	outFile, err := os.Create(outFilePath)
 	if err != nil {
-		return fmt.Errorf("Error creating output file: %v\n", err)
+		return fmt.Errorf("error creating output file: %v", err)
 	}
 	defer outFile.Close()
 
@@ -99,6 +100,7 @@ func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string)
 		return fmt.Errorf("helm init error => %v", err)
 	}
 
+	chartObj.Values = chart.Values
 	logrus.Infof("installing chart %s-%s ...", chart.Name, chart.Version)
 	iCli := action.NewInstall(actionConfig)
 	iCli.Namespace = chart.Namespace

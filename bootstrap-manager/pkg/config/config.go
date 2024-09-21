@@ -31,10 +31,10 @@ type PackageConfig struct {
 }
 
 type ChartConfig struct {
-	Url         string `yaml:"url"`
-	Name        string `yaml:"name"`
-	ReleaseName string `yaml:"releaseName"`
-	Namespace   string `yaml:"namespace"`
-	Version     string `yaml:"version"`
-	Values      string `yaml:"values"`
+	Url         string                 `yaml:"url"`
+	Name        string                 `yaml:"name"`
+	ReleaseName string                 `yaml:"releaseName"`
+	Namespace   string                 `yaml:"namespace"`
+	Version     string                 `yaml:"version"`
+	Values      map[string]interface{} `yaml:"values"`
 }

@@ -1,60 +1,23 @@
 package executor
 
-func (e *Executor) KubectlApply() {
-	return
-}
-
-/*
-
-package main
-
 import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/meta"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/discovery/cached/memory"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
-	"sigs.k8s.io/yaml"
 )
 
-func main() {
-	// Set up the client configuration
-	kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a dynamic client
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a discovery client
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a RESTMapper
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(discoveryClient))
-
+func (e *Executor) KubectlApply(filePath string) error {
 	// Read the YAML file
-	yamlFile, err := os.ReadFile("path/to/your/yaml/file.yaml")
+	yamlFile, err := os.ReadFile(filePath)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("cannot read manifest file %s: %v", filePath, err)
 	}
 
 	// Split the YAML file into multiple resources
@@ -70,7 +33,7 @@ func main() {
 		var resource unstructured.Unstructured
 		err = yaml.Unmarshal([]byte(resourceYAML), &resource)
 		if err != nil {
-			fmt.Printf("Error parsing resource: %v\n", err)
+			logrus.Warningf("Failed to unmarshal yaml: %v", err)
 			continue
 		}
 
@@ -78,9 +41,9 @@ func main() {
 		gvk := resource.GroupVersionKind()
 
 		// Use the RESTMapper to get the GroupVersionResource
-		mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+		mapping, err := e.RestMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			fmt.Printf("Error mapping resource: %v\n", err)
+			logrus.Warningf("Error mapping resource: %v\n", err)
 			continue
 		}
 
@@ -92,14 +55,13 @@ func main() {
 		}
 
 		// Apply the resource
-		_, err = dynamicClient.Resource(gvr).Namespace(resource.GetNamespace()).Create(context.TODO(), &resource, metav1.CreateOptions{})
+		_, err = e.DynamicClient.Resource(gvr).Namespace(resource.GetNamespace()).Create(context.TODO(), &resource, metav1.CreateOptions{})
 		if err != nil {
-			// Handle error (create update logic here)
-			fmt.Printf("Error applying resource: %v\n", err)
+			logrus.Warningf("Error applying resource: %v\n", err)
 		} else {
-			fmt.Printf("Resource %s/%s applied\n", resource.GetKind(), resource.GetName())
+			logrus.Infof("Resource %s/%s applied\n", resource.GetKind(), resource.GetName())
 		}
 	}
-}
 
-*/
+	return nil
+}

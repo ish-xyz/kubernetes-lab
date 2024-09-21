@@ -71,7 +71,12 @@ func (o *Orchestrator) waitForMigration(namespace, name string, maxRetries, inte
 	return false, nil
 }
 
-func (o *Orchestrator) RunMigrationWorkflow(namespace, nodeName string) error {
+func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
+
+	err := o.Executor.CreateBootstrapData()
+	if err != nil {
+		return err
+	}
 
 	objects, err := o.Executor.ListConfigMaps(3, 15, 5)
 	if err != nil {
@@ -122,6 +127,29 @@ func (o *Orchestrator) RunMigrationWorkflow(namespace, nodeName string) error {
 	return nil
 }
 
+func (o *Orchestrator) runPreMigrationWorkflow() error {
+
+	logrus.Infoln("starting pre migration workflow...")
+	for _, pkg := range o.Config.PreMigration {
+		logrus.Infof("package: %s with driver %s", pkg.Name, pkg.Driver)
+		if pkg.Driver == "helm" {
+			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
+			if err != nil {
+				return err
+			}
+		} else if pkg.Driver == "kubectl" {
+			err := o.Executor.KubectlApply(*pkg.Manifest)
+			if err != nil {
+				return err
+			}
+		}
+
+		time.Sleep(10 * time.Second)
+	}
+
+	return nil
+}
+
 func (o *Orchestrator) RunMainWorkflow() error {
 
 	// TODO:
@@ -130,27 +158,17 @@ func (o *Orchestrator) RunMainWorkflow() error {
 	// check for api-server to come up
 
 	// PreMigration stesp
-	// o.RunPreMigrationWorkflow()
-
-	logrus.Infoln("starting pre migration workflow...")
-	for _, pkg := range o.Config.PreMigration {
-		logrus.Infof("package: %s with driver %s", pkg.Name, pkg.Driver)
-		if pkg.Driver == "helm" {
-			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
-			fmt.Println(err)
-		}
-		// speculative wait
-		time.Sleep(10 * time.Second)
-	}
-
-	return nil
-
-	err := o.Executor.CreateBootstrapData()
+	err := o.runPreMigrationWorkflow()
 	if err != nil {
 		return err
 	}
 
-	return o.RunMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
+	err = o.runMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 
 	// PostMigration
 	// o.RunPostMigrationWorkflow()
