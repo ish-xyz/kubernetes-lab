@@ -36,5 +36,5 @@ type ChartConfig struct {
 	ReleaseName string                 `yaml:"releaseName"`
 	Namespace   string                 `yaml:"namespace"`
 	Version     string                 `yaml:"version"`
-	Values      map[string]interface{} `yaml:"values"`
+	Values      map[string]interface{} `yaml:"values" json:"values"`
 }

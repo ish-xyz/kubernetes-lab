@@ -10,7 +10,7 @@ import (
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/orchestrator"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/rand"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"

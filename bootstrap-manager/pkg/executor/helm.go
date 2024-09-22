@@ -110,14 +110,13 @@ func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string)
 		return fmt.Errorf("helm init error => %v", err)
 	}
 
-	//chartObj.Values = chart.Values
 	logrus.Infof("installing chart %s-%s ...", chart.Name, chart.Version)
 	iCli := action.NewInstall(actionConfig)
 	// check if release exists already
 	iCli.Namespace = chart.Namespace
 	iCli.ReleaseName = chart.ReleaseName
 	iCli.IsUpgrade = true
-	_, err = iCli.Run(chartObj, nil)
+	_, err = iCli.Run(chartObj, chart.Values)
 	if err != nil {
 		return fmt.Errorf("helm install error => %v", err)
 	} else {
