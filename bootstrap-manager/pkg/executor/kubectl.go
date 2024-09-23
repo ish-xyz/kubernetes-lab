@@ -109,13 +109,11 @@ func (e *Executor) apply(ctx context.Context, objects []*unstructured.Unstructur
 			},
 		)
 		if err != nil {
-			logrus.Warnln("failed to apply resource:", obj.GetName(), err)
-			continue
+			return err
 		} else {
 			logrus.Infof("resource %s applied succesfully!", obj.GetName())
 		}
 	}
-
 	return nil
 }
 

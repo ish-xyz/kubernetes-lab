@@ -27,9 +27,45 @@ func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
 	}
 }
 
+func (o *Orchestrator) runPreMigrationWorkflow() error {
+
+	logrus.Infoln("starting pre migration workflow...")
+	for _, pkg := range o.Config.PreMigration {
+
+		logrus.Infof(">>> processing package: %s with driver %s", pkg.Name, pkg.Driver)
+		if pkg.Driver == "helm" {
+			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
+			if err != nil {
+				return fmt.Errorf("helm installation failed: %v", err)
+			}
+
+		} else if pkg.Driver == "kubectl" {
+			err := o.Executor.KubectlApply(*pkg.Manifest)
+			if err != nil {
+				return fmt.Errorf("kubectl apply failed: %v", err)
+			}
+		}
+
+		// speculative sleep
+		time.Sleep(5 * time.Second)
+	}
+
+	return nil
+}
+
 func (o *Orchestrator) fakeMigration(cmObj *corev1.ConfigMap) error {
 
-	fmt.Println("(TODO) performing migration of this node! (3s)")
+	for _, resource := range o.Config.Migration {
+
+		o.Executor.StopServices(executor.MODE_FAIL_FAST, resource.SystemdUnit)
+		o.Executor.KubectlApply(resource.Manifest)
+		// check api-server is up and running before proceeding
+	}
+	// stop systemd api-server
+	// deploy manifest api-server
+	// run checks (load ca cert from kubeconfig and query apiserver via localhost)
+	// run checks (load ca cert from kubeconfig and query apiserver via loadbalancer)
+	// continue
 
 	time.Sleep(3 * time.Second)
 
@@ -122,29 +158,6 @@ func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (o *Orchestrator) runPreMigrationWorkflow() error {
-
-	logrus.Infoln("starting pre migration workflow...")
-	for _, pkg := range o.Config.PreMigration {
-		logrus.Infof("processing package: %s with driver %s", pkg.Name, pkg.Driver)
-		if pkg.Driver == "helm" {
-			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
-			if err != nil {
-				return err
-			}
-		} else if pkg.Driver == "kubectl" {
-			err := o.Executor.KubectlApply(*pkg.Manifest)
-			if err != nil {
-				return err
-			}
-		}
-
-		time.Sleep(10 * time.Second)
 	}
 
 	return nil

@@ -1,4 +1,4 @@
-kubeconfig: /home/waffle34/.kube/config
+kubeconfig: /etc/kubernetes/admin.kubeconfig
 nodeName: controller-0-mytestcluster
 sync:
   nodesCount: 3
@@ -6,39 +6,21 @@ sync:
     namespace: default
     prefix: bootstrap-manager
 preMigration:
-  # - name: random-files
-  #   driver: kubectl
-  #   manifest: /tmp/o.yaml
-  - name: prometheus
+  - name: default-roles
+    driver: kubectl
+    manifest: /etc/kubernetes/default-roles.yaml
+  - name: cilium-cni
     driver: helm
     chart:
-      url: https://prometheus-community.github.io/helm-charts
-      name: prometheus
-      releaseName: prometheus
-      version: "25.27.0"
-      namespace: "default"
-      values:
-        alertmanager:
-          enabled: true
-
-
-  # - name: cilium-cni
-  #   driver: helm
-  #   chart:
-  #     url: https://helm.cilium.io/
-  #     name: cilium
-  #     releaseName: cilium
-  #     version: 1.16.1
-  #     namespace: ""
-  #     values: ""
+      url: https://helm.cilium.io/
+      name: cilium
+      releaseName: cilium
+      version: 1.16.1
+      namespace: ""
+      values: ""
 migration:
-  - systemdUnit: kube-apiserver
+  - systemdUnit: kube-apiserver.service
     manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
 
 postMigration: []
-#finalChecks:
-# kubeApiServer:
-#   staticPodPath: /etc/kubernetes/static-pods/
-#   manifest: /etc/kubernetes/bootstrap-manager/kube-apiserver.yaml
-#   address: 127.0.0.1:6443
-#   caCert: /etc/kubernetes/ssl/ca.crt
+finalChecks: []

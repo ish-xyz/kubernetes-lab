@@ -148,6 +148,17 @@ data "template_file" "controllers_kubeconfig_admin" {
     }
 }
 
+data "template_file" "controllers_kubeconfig_bootstrap_manager" {
+    template = file("${path.module}/templates/controllers/kubeconfig-bootstrap-manager.tftpl")
+    vars = {
+      ca_crt = base64encode(module.ca.ca_cert)
+      cluster_name = var.cluster_name
+      lb_apiserver_address = local.lb_apiserver_address
+      admin_crt = base64encode(module.admin.cert)
+      admin_key = base64encode(module.admin.key)
+    }
+}
+
 data "template_file" "controllers_kubeconfig_controller_manager" {
     template = file("${path.module}/templates/controllers/kubeconfig-kube-controller-manager.tftpl")
     vars = {
@@ -245,6 +256,10 @@ data "template_file" "controllers_cloud_init" {
       },
       {
         name    = "admin.kubeconfig"
+        content = base64encode(data.template_file.controllers_kubeconfig_admin.rendered)
+      },
+      {
+        name    = "bootstrap-manager.kubeconfig"
         content = base64encode(data.template_file.controllers_kubeconfig_admin.rendered)
       },
       {

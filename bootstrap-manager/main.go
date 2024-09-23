@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/coreos/go-systemd/dbus"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/executor"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/orchestrator"
@@ -106,9 +107,13 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	rsm := getRestMapper(dsc)
-	// TODO: get dynamic, discovery, restmapper
+	systemdConn, err := dbus.NewSystemdConnection()
+	if err != nil {
+		return fmt.Errorf("failed to initiate connection to dbus for systemd management")
+	}
 
 	exec := executor.NewExecutor(
+		systemdConn,
 		kcl,
 		dsc,
 		dvc,

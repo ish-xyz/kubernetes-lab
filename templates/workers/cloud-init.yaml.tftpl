@@ -28,7 +28,7 @@ write_files:
 %{ for conf in jsondecode(kube_configs) ~}
 - path: ${kube_config_dir}/${conf.name}
   owner: kubernetes:kubernetes
-  permissions: '0644'
+  permissions: '0600'
   defer: true
   encoding: b64
   content: ${conf.content}
