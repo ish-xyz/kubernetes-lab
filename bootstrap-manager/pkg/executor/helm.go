@@ -23,7 +23,7 @@ func (e *Executor) helmDownload(url, chartName, chartVersion, outFilePath string
 		URL: url,
 	}, getter.All(cli.New()))
 	if err != nil {
-		return fmt.Errorf("Error creating chart repository: %s\n", err)
+		return fmt.Errorf("error creating chart repository: %s", err)
 	}
 
 	index, err := r.DownloadIndexFile()
@@ -123,6 +123,7 @@ func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string)
 	} else {
 
 		iCli := action.NewInstall(actionConfig)
+		//iCli.DryRun = true
 		iCli.Namespace = chart.Namespace
 		iCli.ReleaseName = chart.ReleaseName
 		_, err = iCli.Run(chartObj, chart.Values)

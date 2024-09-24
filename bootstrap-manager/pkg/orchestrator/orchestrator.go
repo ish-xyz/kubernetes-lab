@@ -10,14 +10,21 @@ import (
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/executor"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/rand"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	OWNER_KEY = "owner"
+)
+
 type Orchestrator struct {
-	Executor *executor.Executor
-	Config   *config.Config
+	Executor    *executor.Executor
+	Config      *config.Config
+	Leader      string
+	OrderedList []corev1.ConfigMap
 }
 
 func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
@@ -28,6 +35,13 @@ func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
 }
 
 func (o *Orchestrator) runPreMigrationWorkflow() error {
+
+	if o.Leader != o.Config.NodeName {
+		// TODO: put under parameter
+		logrus.Infoln("not the leader, waiting %ds for leader to deploy preMigration packages", 30)
+		time.Sleep(30 * time.Second)
+		return nil
+	}
 
 	logrus.Infoln("starting pre migration workflow...")
 	for _, pkg := range o.Config.PreMigration {
@@ -53,78 +67,105 @@ func (o *Orchestrator) runPreMigrationWorkflow() error {
 	return nil
 }
 
-func (o *Orchestrator) fakeMigration(cmObj *corev1.ConfigMap) error {
+func (o *Orchestrator) runMigration(cmObj *corev1.ConfigMap) error {
 
 	for _, resource := range o.Config.Migration {
 
-		o.Executor.StopServices(executor.MODE_FAIL_FAST, resource.SystemdUnit)
+		//o.Executor.StopServices(executor.MODE_FAIL_FAST, resource.SystemdUnit)
 		o.Executor.KubectlApply(resource.Manifest)
-		// check api-server is up and running before proceeding
+		o.Executor.HTTPSCheck(
+			resource.HTTPChecks[0].URL,
+			resource.HTTPChecks[0].CA,
+			resource.HTTPChecks[0].Insecure,
+			20,
+			6,
+		)
+		err := o.updateMigrationStatus(cmObj, resource.Key, "true")
+		if err != nil {
+			return err
+		}
 	}
-	// stop systemd api-server
-	// deploy manifest api-server
-	// run checks (load ca cert from kubeconfig and query apiserver via localhost)
-	// run checks (load ca cert from kubeconfig and query apiserver via loadbalancer)
-	// continue
 
-	time.Sleep(3 * time.Second)
+	return nil
+}
 
-	cmObj.Data["apiServer"] = "true"
-	cmObj.Data["controllerManager"] = "true"
-	cmObj.Data["scheduler"] = "true"
+func (o *Orchestrator) updateMigrationStatus(cmObj *corev1.ConfigMap, key, val string) error {
+
+	cmObj.Data[key] = val
 
 	patchBytes, err := json.Marshal(cmObj)
 	if err != nil {
 		return err
 	}
-	// TODO: Run via executor
 	_, err = o.Executor.KubeClient.CoreV1().ConfigMaps(cmObj.Namespace).Patch(context.TODO(), cmObj.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	return err
 }
 
 func (o *Orchestrator) waitForMigration(namespace, name string, maxRetries, interval int) (bool, error) {
 
-	retry := 0
-	for {
+	for retry := 0; retry <= maxRetries; retry++ {
 		cmObj, err := o.Executor.GetConfigMap(namespace, name, 5, 3)
 		if err != nil {
 			return false, err
 		}
 
-		if cmObj.Data["apiServer"] == "true" &&
-			cmObj.Data["controllerManager"] == "true" &&
-			cmObj.Data["scheduler"] == "true" {
+		if o.isMigrationCompleted(cmObj) {
 			return true, nil
 		}
 
-		if retry >= maxRetries {
-			break
-		} else {
-			retry++
-		}
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 	return false, nil
 }
 
-func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
+func (o *Orchestrator) isMigrationCompleted(bootstrapConfigMap *corev1.ConfigMap) bool {
 
-	err := o.Executor.CreateBootstrapData()
+	keys := func() []string {
+		keys := []string{}
+		for _, x := range o.Config.Migration {
+			keys = append(keys, x.Key)
+		}
+		return keys
+	}()
+
+	res := true
+	for _, key := range keys {
+		if bootstrapConfigMap.Data[key] != "true" {
+			res = false
+		}
+	}
+
+	return res
+}
+
+func (o *Orchestrator) createBootstrapConfigMap() error {
+
+	data := map[string]string{OWNER_KEY: o.Config.NodeName}
+	for _, migrationConfig := range o.Config.Migration {
+		data[migrationConfig.Key] = "false"
+	}
+
+	_, err := o.Executor.CreateBootstrapConfigMap(data)
 	if err != nil {
 		return err
 	}
 
-	objects, err := o.Executor.ListConfigMaps(3, 15, 5)
+	return nil
+}
+
+func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
+
+	configMapList, err := o.Executor.ListBootstrapConfigMaps(3, 15, 5)
 	if err != nil {
 		return err
 	}
 
 	// Sort configmaps by creation date
-	sort.Slice(objects.Items, func(i, j int) bool {
-		return objects.Items[i].CreationTimestamp.Before(&objects.Items[j].CreationTimestamp)
+	sort.Slice(configMapList.Items, func(i, j int) bool {
+		return configMapList.Items[i].CreationTimestamp.Before(&configMapList.Items[j].CreationTimestamp)
 	})
 
-	for _, obj := range objects.Items {
+	for _, obj := range configMapList.Items {
 
 		logrus.Infof("processing node: %s ...", obj.Name)
 		cmObj, err := o.Executor.GetConfigMap(namespace, obj.Name, 5, 3)
@@ -132,19 +173,19 @@ func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
 			return err
 		}
 
-		// check until completed
-		if cmObj.Data["apiServer"] == "true" &&
-			cmObj.Data["controllerManager"] == "true" &&
-			cmObj.Data["scheduler"] == "true" {
-
+		// 1. if migration for the node associated with the configmap is completed
+		// we don't care and we move on.
+		if o.isMigrationCompleted(cmObj) {
 			// node already migrated, skip to next one
 			logrus.Infof("node '%s' already migrated, skipping.", obj.Name)
 			continue
 		}
 
+		// 2. if this node is not the owner of the configmap
+		// we need to wait for the migration of the other node to finish
 		if cmObj.Data["owner"] != nodeName {
 			logrus.Infof("waiting for node's migration ('%s')...", obj.Name)
-			res, err := o.waitForMigration(namespace, cmObj.Name, 20, 15)
+			res, err := o.waitForMigration(namespace, cmObj.Name, 20, 15) //TODO: set this as parameter
 			if err != nil {
 				return fmt.Errorf("failed while checking migration results for node %s with error: %v", obj.Name, err)
 			}
@@ -153,12 +194,38 @@ func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
 			}
 		}
 
+		// 3. it's our turn to migrate
 		logrus.Infof("performing node migration ('%s')!", obj.Name)
-		err = o.fakeMigration(cmObj)
+		err = o.runMigration(cmObj)
 		if err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (o *Orchestrator) RunLeaderElection() error {
+
+	delay := rand.Intn(5000) + 1000
+	logrus.Infof("waiting for bootstrap delay of %dms ...", delay)
+	time.Sleep(time.Duration(delay) * time.Millisecond)
+
+	if err := o.createBootstrapConfigMap(); err != nil {
+		return fmt.Errorf("failed creating bootstrap configmap => %v", err)
+	}
+
+	configMapList, err := o.Executor.ListBootstrapConfigMaps(3, 15, 5)
+	if err != nil {
+		return err
+	}
+
+	// Sort configmaps by creation date
+	sort.Slice(configMapList.Items, func(i, j int) bool {
+		return configMapList.Items[i].CreationTimestamp.Before(&configMapList.Items[j].CreationTimestamp)
+	})
+
+	o.Leader = configMapList.Items[0].Data[OWNER_KEY]
 
 	return nil
 }
@@ -170,15 +237,34 @@ func (o *Orchestrator) RunMainWorkflow() error {
 	// check systemd services
 	// check for api-server to come up
 
-	// PreMigration stesp
-	err := o.runPreMigrationWorkflow()
-	if err != nil {
-		return err
-	}
+	// !!! testing (uncomment later):
+	// err := o.RunLeaderElection()
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = o.runMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
-	if err != nil {
-		return err
+	// // PreMigration stesp
+	// err = o.runPreMigrationWorkflow()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = o.runMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
+	// if err != nil {
+	// 	return err
+	// }
+
+	for _, resource := range o.Config.Migration {
+
+		fmt.Println(o.Executor.StopService(resource.SystemdUnit))
+		o.Executor.KubectlApply(resource.Manifest)
+		o.Executor.HTTPSCheck(
+			resource.HTTPChecks[0].URL,
+			resource.HTTPChecks[0].CA,
+			resource.HTTPChecks[0].Insecure,
+			20,
+			6,
+		)
 	}
 
 	return nil

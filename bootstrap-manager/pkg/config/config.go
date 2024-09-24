@@ -16,8 +16,20 @@ type Config struct {
 }
 
 type MigrationConfig struct {
-	SystemdUnit string `yaml:"systemUnit"`
+	Key         string `yaml:"key"`
+	SystemdUnit string `yaml:"systemdUnit"`
 	Manifest    string `yaml:"manifest"`
+	HTTPChecks  []struct {
+		URL      string `yaml:"url"`
+		CA       string `yaml:"ca"`
+		Insecure bool   `yaml:"insecure"`
+	} `yaml:"httpChecks"`
+	KubectlChecks []struct {
+		LabelSelector  string `yaml:"labelSelector"`
+		Namespace      string `yaml:"namespace"`
+		Node           string `yaml:"node"`
+		ExpectedStatus string `yaml:"expectedStatus"`
+	} `yaml:"kubectlChecks"`
 }
 
 type PackageConfig struct {

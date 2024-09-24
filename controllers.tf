@@ -132,7 +132,21 @@ data "template_file" "controllers_kubelet_config" {
 data "template_file" "controllers_kube_scheduler_config" {
     template = file("${path.module}/templates/controllers/kube-scheduler-config.tftpl")
     vars = {
-      kube_config_dir = "/etc/kubernetes"
+      kube_config_dir = local.kube_config_dir
+    }
+}
+
+data "template_file" "controllers_kube_apiserver_manifest" {
+    template = file("${path.module}/templates/controllers/manifest-kube-apiserver.yaml.tftpl")
+    vars = {
+      service_cidr= var.service_cidr
+      node_ports_range = var.node_ports_range
+      kube_certs_dir = local.kube_certs_dir
+      kube_config_dir = local.kube_config_dir
+      etcd_endpoints = local.etcd_endpoints
+      etcd_certs_dir = local.etcd_certs_dir
+      controllers_count = var.controllers_count
+      kube_version = var.kube_version
     }
 }
 
@@ -145,17 +159,7 @@ data "template_file" "controllers_kubeconfig_admin" {
       cluster_name = var.cluster_name
       admin_crt = base64encode(module.admin.cert)
       admin_key = base64encode(module.admin.key)
-    }
-}
-
-data "template_file" "controllers_kubeconfig_bootstrap_manager" {
-    template = file("${path.module}/templates/controllers/kubeconfig-bootstrap-manager.tftpl")
-    vars = {
-      ca_crt = base64encode(module.ca.ca_cert)
-      cluster_name = var.cluster_name
       lb_apiserver_address = local.lb_apiserver_address
-      admin_crt = base64encode(module.admin.cert)
-      admin_key = base64encode(module.admin.key)
     }
 }
 
@@ -186,6 +190,7 @@ data "template_file" "controllers_kubeconfig_kubelet" {
       ca_crt = base64encode(module.ca.ca_cert)
       node_name = each.value
       cluster_name = var.cluster_name
+      lb_apiserver_address = local.lb_apiserver_address
       kubelet_crt = base64encode(module.controllers-kubelet[each.key].cert)
       kubelet_key = base64encode(module.controllers-kubelet[each.key].key)
     }
@@ -259,10 +264,6 @@ data "template_file" "controllers_cloud_init" {
         content = base64encode(data.template_file.controllers_kubeconfig_admin.rendered)
       },
       {
-        name    = "bootstrap-manager.kubeconfig"
-        content = base64encode(data.template_file.controllers_kubeconfig_admin.rendered)
-      },
-      {
         name    = "kube-controller-manager.kubeconfig"
         content = base64encode(data.template_file.controllers_kubeconfig_controller_manager.rendered)
       },
@@ -281,6 +282,10 @@ data "template_file" "controllers_cloud_init" {
       {
         name    = "encryption-config.yaml"
         content = base64encode(data.template_file.etcd_encryption_config.rendered)
+      },
+      {
+        name = "manifests/kube-apiserver.yaml"
+        content = base64encode(data.template_file.controllers_kube_apiserver_manifest.rendered)
       }
     ])
     kube_certs = jsonencode([

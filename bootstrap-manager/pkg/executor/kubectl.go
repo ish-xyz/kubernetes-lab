@@ -23,18 +23,6 @@ const (
 	YAML_DELIMITER    = "---"
 )
 
-func (e *Executor) getRESTMapper() (meta.RESTMapper, error) {
-
-	groupResources, err := restmapper.GetAPIGroupResources(e.DiscoveryClient)
-	if err != nil {
-		return nil, err
-	}
-
-	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-
-	return mapper, nil
-}
-
 func getNamespace(obj *unstructured.Unstructured, mapping *meta.RESTMapping) string {
 	// Default to "default" namespace if not specified
 	namespace := obj.GetNamespace()

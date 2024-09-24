@@ -10,6 +10,7 @@ ExecStart=/usr/local/bin/kubelet \
   --config=${kube_config_dir}/kubelet-config.yaml \
   --kubeconfig=${kube_config_dir}/kubelet.kubeconfig \
   --register-node=true \
+  --node-labels node.kubernetes.io/worker=true \
   --v=2
 Restart=on-failure
 RestartSec=5
