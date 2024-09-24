@@ -38,8 +38,8 @@ func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
 func (o *Orchestrator) runPreMigrationWorkflow() error {
 
 	if o.Leader != o.Config.NodeName {
-		// TODO: put under parameter
-		logrus.Infoln("not the leader, waiting %ds for leader to deploy preMigration packages", 30)
+		// TODO: make this smarter
+		logrus.Infof("not the leader, waiting %ds for leader to deploy preMigration packages", 30)
 		time.Sleep(30 * time.Second)
 		return nil
 	}
@@ -100,8 +100,8 @@ func (o *Orchestrator) runMigration(cmObj *corev1.ConfigMap) error {
 					check.URL,
 					check.CA,
 					check.Insecure,
-					20,
-					6,
+					20, // TODO: parametrise
+					6,  // TODO: parametrise
 				)
 			}
 		}

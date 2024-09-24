@@ -1,5 +1,6 @@
 kubeconfig: /etc/kubernetes/admin.kubeconfig
 nodeName: controller-0-mytestcluster
+initSleep: 30s
 sync:
   nodesCount: 3
   resources:
