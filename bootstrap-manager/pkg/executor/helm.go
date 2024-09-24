@@ -123,7 +123,6 @@ func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string)
 	} else {
 
 		iCli := action.NewInstall(actionConfig)
-		//iCli.DryRun = true
 		iCli.Namespace = chart.Namespace
 		iCli.ReleaseName = chart.ReleaseName
 		_, err = iCli.Run(chartObj, chart.Values)

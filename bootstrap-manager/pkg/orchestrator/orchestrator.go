@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
 	"time"
 
@@ -71,16 +72,41 @@ func (o *Orchestrator) runMigration(cmObj *corev1.ConfigMap) error {
 
 	for _, resource := range o.Config.Migration {
 
-		//o.Executor.StopServices(executor.MODE_FAIL_FAST, resource.SystemdUnit)
-		o.Executor.KubectlApply(resource.Manifest)
-		o.Executor.HTTPSCheck(
-			resource.HTTPChecks[0].URL,
-			resource.HTTPChecks[0].CA,
-			resource.HTTPChecks[0].Insecure,
-			20,
-			6,
-		)
-		err := o.updateMigrationStatus(cmObj, resource.Key, "true")
+		err := o.Executor.StopService(resource.SystemdUnit)
+		if err != nil {
+			return err
+		}
+
+		err = o.Executor.DisableServices([]string{resource.SystemdUnit})
+		if err != nil {
+			return err
+		}
+
+		for retry := 0; retry <= 10; retry++ {
+			err := o.Executor.KubectlApply(resource.Manifest)
+			if err == nil {
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+
+		for _, check := range resource.HTTPChecks {
+			urlObj, err := url.Parse(check.URL)
+			if err != nil {
+				return err
+			}
+			if urlObj.Scheme == "https" {
+				o.Executor.HTTPSCheck(
+					check.URL,
+					check.CA,
+					check.Insecure,
+					20,
+					6,
+				)
+			}
+		}
+
+		err = o.updateMigrationStatus(cmObj, resource.Key, "true")
 		if err != nil {
 			return err
 		}
@@ -215,7 +241,7 @@ func (o *Orchestrator) RunLeaderElection() error {
 		return fmt.Errorf("failed creating bootstrap configmap => %v", err)
 	}
 
-	configMapList, err := o.Executor.ListBootstrapConfigMaps(3, 15, 5)
+	configMapList, err := o.Executor.ListBootstrapConfigMaps(o.Config.Sync.NodesCount, 10, 6)
 	if err != nil {
 		return err
 	}
@@ -237,41 +263,41 @@ func (o *Orchestrator) RunMainWorkflow() error {
 	// check systemd services
 	// check for api-server to come up
 
-	// !!! testing (uncomment later):
-	// err := o.RunLeaderElection()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // PreMigration stesp
-	// err = o.runPreMigrationWorkflow()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = o.runMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
-	// if err != nil {
-	// 	return err
-	// }
-
-	for _, resource := range o.Config.Migration {
-
-		fmt.Println(o.Executor.StopService(resource.SystemdUnit))
-		o.Executor.KubectlApply(resource.Manifest)
-		o.Executor.HTTPSCheck(
-			resource.HTTPChecks[0].URL,
-			resource.HTTPChecks[0].CA,
-			resource.HTTPChecks[0].Insecure,
-			20,
-			6,
-		)
+	err := o.RunLeaderElection()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	// PreMigration stesp
+	err = o.runPreMigrationWorkflow()
+	if err != nil {
+		return err
+	}
+
+	err = o.runMigrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
+	if err != nil {
+		return err
+	}
 
 	// PostMigration
 	// o.RunPostMigrationWorkflow()
 
 	// Final steps
 	// o.RunFinalWorkflow()
+	return nil
 }
+
+// func retryWithResult[T any](fn func() (T, error), maxRetries int, intervalSeconds int) (T, error) {
+// 	var result T
+// 	var err error
+
+// 	for retry := 0; retry < maxRetries; retry++ {
+// 		result, err = fn()
+// 		if err == nil {
+// 			return result, nil
+// 		}
+// 		time.Sleep(time.Duration(intervalSeconds) * time.Second)
+// 	}
+
+// 	return result, err
+// }
