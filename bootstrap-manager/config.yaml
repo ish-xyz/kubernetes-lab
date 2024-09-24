@@ -1,6 +1,5 @@
 kubeconfig: /etc/kubernetes/admin.kubeconfig
 nodeName: controller-0-mytestcluster
-initSleep: 30s
 sync:
   nodesCount: 3
   resources:
@@ -30,6 +29,9 @@ migration:
   - insecure: false
     url: https://kube-apiserver-mytestcluster.compute.zone:6443/version
     ca: /etc/kubernetes/ssl/ca.crt
+    maxRetries: 30
+    interval: 10s
+
     # - type: kubectl
     #   selector: app=kube-apiserver
     #   nodeName: controller-0-mytestcluster 

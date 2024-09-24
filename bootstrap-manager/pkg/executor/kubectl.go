@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -107,11 +108,23 @@ func (e *Executor) apply(ctx context.Context, objects []*unstructured.Unstructur
 
 func (e *Executor) KubectlApply(filePath string) error {
 
-	yamlPayload, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("cannot read manifest file %s: %v", filePath, err)
-	}
+	var err error
+	var payload []byte
 
-	objects := getUnstructuredFromYAML(string(yamlPayload))
-	return e.apply(context.TODO(), objects)
+	for retry := 0; retry <= 10; retry++ {
+		payload, err = os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("cannot read manifest file %s: %v", filePath, err)
+		}
+
+		objects := getUnstructuredFromYAML(string(payload))
+		err = e.apply(context.TODO(), objects)
+		if err == nil {
+			// no error exit early
+			break
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+	return err
 }

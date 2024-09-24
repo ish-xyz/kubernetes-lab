@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type Config struct {
 	Kubeconfig string `yaml:"kubeconfig"`
 	NodeName   string `yaml:"nodeName"`
@@ -19,16 +21,21 @@ type MigrationConfig struct {
 	Key         string `yaml:"key"`
 	SystemdUnit string `yaml:"systemdUnit"`
 	Manifest    string `yaml:"manifest"`
+	LeaderOnly  bool   `yaml:"leaderOnly"`
 	HTTPChecks  []struct {
-		URL      string `yaml:"url"`
-		CA       string `yaml:"ca"`
-		Insecure bool   `yaml:"insecure"`
+		URL        string        `yaml:"url"`
+		CA         string        `yaml:"ca"`
+		Insecure   bool          `yaml:"insecure"`
+		MaxRetries int           `yaml:"maxRetries"`
+		interval   time.Duration `yaml:"interval"`
 	} `yaml:"httpChecks"`
 	KubectlChecks []struct {
-		LabelSelector  string `yaml:"labelSelector"`
-		Namespace      string `yaml:"namespace"`
-		Node           string `yaml:"node"`
-		ExpectedStatus string `yaml:"expectedStatus"`
+		LabelSelector  string        `yaml:"labelSelector"`
+		Namespace      string        `yaml:"namespace"`
+		Node           string        `yaml:"node"`
+		ExpectedStatus string        `yaml:"expectedStatus"`
+		MaxRetries     int           `yaml:"maxRetries"`
+		interval       time.Duration `yaml:"interval"`
 	} `yaml:"kubectlChecks"`
 }
 

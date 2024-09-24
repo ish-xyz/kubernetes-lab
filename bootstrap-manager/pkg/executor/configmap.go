@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // Create Bootstrap Configmaps
@@ -30,8 +31,9 @@ func (e *Executor) CreateBootstrapConfigMap(data map[string]string) (*corev1.Con
 	return cmObj, err
 }
 
-func (e *Executor) PatchConfigMap() {
-	return
+func (e *Executor) PatchConfigMap(cmObj *corev1.ConfigMap, patch []byte) error {
+	_, err := e.KubeClient.CoreV1().ConfigMaps(cmObj.Namespace).Patch(context.TODO(), cmObj.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+	return err
 }
 
 // List boostrap configmaps and wait for all bootstrap-manager to post their own

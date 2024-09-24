@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -84,6 +85,20 @@ func (e *Executor) helmDownload(url, chartName, chartVersion, outFilePath string
 }
 
 func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string) error {
+
+	var err error
+	for retry := 0; retry <= 10; retry++ {
+		err = e.helmInstall(chart, kubeconfigPath)
+		if err == nil {
+			// no error exity early
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return err
+}
+
+func (e *Executor) helmInstall(chart *config.ChartConfig, kubeconfigPath string) error {
 
 	outFilePath := fmt.Sprintf("%s/%s-%s.tgz", e.TempFolder, chart.Name, chart.Version)
 	err := e.helmDownload(chart.Url, chart.Name, chart.Version, outFilePath)

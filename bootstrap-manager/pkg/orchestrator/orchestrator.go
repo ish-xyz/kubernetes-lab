@@ -1,7 +1,6 @@
 package orchestrator
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -13,8 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/rand"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -38,8 +35,9 @@ func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
 func (o *Orchestrator) runPreMigrationWorkflow() error {
 
 	if o.Leader != o.Config.NodeName {
-		// TODO: make this smarter
-		logrus.Infof("not the leader, waiting %ds for leader to deploy preMigration packages", 30)
+		// speculative sleep, there's another blocking operation further down
+		// the workflow which will serve as actual block
+		logrus.Infof("not the leader, waiting for the leader to perform preMigration steps")
 		time.Sleep(30 * time.Second)
 		return nil
 	}
@@ -82,12 +80,9 @@ func (o *Orchestrator) runMigration(cmObj *corev1.ConfigMap) error {
 			return err
 		}
 
-		for retry := 0; retry <= 10; retry++ {
-			err := o.Executor.KubectlApply(resource.Manifest)
-			if err == nil {
-				break
-			}
-			time.Sleep(5 * time.Second)
+		err = o.Executor.KubectlApply(resource.Manifest)
+		if err == nil {
+			return err
 		}
 
 		for _, check := range resource.HTTPChecks {
@@ -123,7 +118,8 @@ func (o *Orchestrator) updateMigrationStatus(cmObj *corev1.ConfigMap, key, val s
 	if err != nil {
 		return err
 	}
-	_, err = o.Executor.KubeClient.CoreV1().ConfigMaps(cmObj.Namespace).Patch(context.TODO(), cmObj.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+
+	o.Executor.PatchConfigMap(cmObj, patchBytes)
 	return err
 }
 
@@ -286,18 +282,3 @@ func (o *Orchestrator) RunMainWorkflow() error {
 	// o.RunFinalWorkflow()
 	return nil
 }
-
-// func retryWithResult[T any](fn func() (T, error), maxRetries int, intervalSeconds int) (T, error) {
-// 	var result T
-// 	var err error
-
-// 	for retry := 0; retry < maxRetries; retry++ {
-// 		result, err = fn()
-// 		if err == nil {
-// 			return result, nil
-// 		}
-// 		time.Sleep(time.Duration(intervalSeconds) * time.Second)
-// 	}
-
-// 	return result, err
-// }
