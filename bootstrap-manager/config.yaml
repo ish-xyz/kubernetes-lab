@@ -5,11 +5,16 @@ sync:
   resources:
     namespace: default
     prefix: bootstrap-manager
+
 preMigration:
+
 - name: default-roles
+  leaderOnly: true
   driver: kubectl
   manifest: /etc/kubernetes/default-roles.yaml
+
 - name: cilium-cni
+  leaderOnly: true
   driver: helm
   chart:
     url: https://helm.cilium.io/
@@ -21,16 +26,18 @@ preMigration:
       kubeProxyReplacement: true
       k8sServiceHost: kube-apiserver-mytestcluster.compute.zone
       k8sServicePort: 6443
+
 migration:
 - key: kube-apiserver
   systemdUnit: kube-apiserver.service
   manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
+  leaderOnly: true
   httpChecks:
-  - insecure: false
-    url: https://kube-apiserver-mytestcluster.compute.zone:6443/version
+  - url: https://apiserver.kubernetes.local:6443/version
     ca: /etc/kubernetes/ssl/ca.crt
+    insecure: false
     maxRetries: 30
-    interval: 10s
+    interval: 10
 
     # - type: kubectl
     #   selector: app=kube-apiserver

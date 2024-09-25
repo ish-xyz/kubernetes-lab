@@ -6,9 +6,7 @@
 
 # bm coding
 - add logging
-- apply resources only in leader if says so (also add option for it)
 - parametrise initial wait time
-- parametries interval/retries for http and kubectl checks
 - add some codebase testing (30%/40%)
 - add initial checks
 - add final checks functionality

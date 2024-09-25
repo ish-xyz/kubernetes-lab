@@ -34,16 +34,14 @@ func NewOrchestrator(e *executor.Executor, cfg *config.Config) *Orchestrator {
 
 func (o *Orchestrator) runPreMigrationWorkflow() error {
 
-	if o.Leader != o.Config.NodeName {
-		// speculative sleep, there's another blocking operation further down
-		// the workflow which will serve as actual block
-		logrus.Infof("not the leader, waiting for the leader to perform preMigration steps")
-		time.Sleep(30 * time.Second)
-		return nil
-	}
-
 	logrus.Infoln("starting pre migration workflow...")
 	for _, pkg := range o.Config.PreMigration {
+
+		if pkg.LeaderOnly && o.Leader != o.Config.NodeName {
+			logrus.Infof("not the leader, speculative to allow the leader to perform preMigration steps")
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
 		logrus.Infof(">>> processing package: %s with driver %s", pkg.Name, pkg.Driver)
 		if pkg.Driver == "helm" {
@@ -80,9 +78,13 @@ func (o *Orchestrator) runMigration(cmObj *corev1.ConfigMap) error {
 			return err
 		}
 
-		err = o.Executor.KubectlApply(resource.Manifest)
-		if err == nil {
-			return err
+		if resource.LeaderOnly && o.Leader == o.Config.NodeName {
+			err = o.Executor.KubectlApply(resource.Manifest)
+			if err != nil {
+				return err
+			}
+		} else {
+			logrus.Infoln("skipping apply migration step, should only be performed on leader", o.Leader)
 		}
 
 		for _, check := range resource.HTTPChecks {
@@ -95,8 +97,8 @@ func (o *Orchestrator) runMigration(cmObj *corev1.ConfigMap) error {
 					check.URL,
 					check.CA,
 					check.Insecure,
-					20, // TODO: parametrise
-					6,  // TODO: parametrise
+					check.MaxRetries,
+					check.Interval,
 				)
 			}
 		}
@@ -119,7 +121,7 @@ func (o *Orchestrator) updateMigrationStatus(cmObj *corev1.ConfigMap, key, val s
 		return err
 	}
 
-	o.Executor.PatchConfigMap(cmObj, patchBytes)
+	o.Executor.PatchConfigMap(cmObj, patchBytes, 10, 3)
 	return err
 }
 
@@ -206,14 +208,18 @@ func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
 		// 2. if this node is not the owner of the configmap
 		// we need to wait for the migration of the other node to finish
 		if cmObj.Data["owner"] != nodeName {
+
 			logrus.Infof("waiting for node's migration ('%s')...", obj.Name)
-			res, err := o.waitForMigration(namespace, cmObj.Name, 20, 15) //TODO: set this as parameter
+
+			res, err := o.waitForMigration(namespace, cmObj.Name, 150, 3) //TODO: set this as parameter
 			if err != nil {
 				return fmt.Errorf("failed while checking migration results for node %s with error: %v", obj.Name, err)
 			}
 			if !res {
 				return fmt.Errorf("migration for node %s took too long, aborting", obj.Name)
 			}
+
+			continue
 		}
 
 		// 3. it's our turn to migrate
@@ -222,6 +228,8 @@ func (o *Orchestrator) runMigrationWorkflow(namespace, nodeName string) error {
 		if err != nil {
 			return err
 		}
+
+		logrus.Infoln("migration completed successfully in node", o.Config.NodeName)
 	}
 
 	return nil

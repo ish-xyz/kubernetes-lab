@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 type Config struct {
 	Kubeconfig string `yaml:"kubeconfig"`
 	NodeName   string `yaml:"nodeName"`
@@ -23,27 +21,28 @@ type MigrationConfig struct {
 	Manifest    string `yaml:"manifest"`
 	LeaderOnly  bool   `yaml:"leaderOnly"`
 	HTTPChecks  []struct {
-		URL        string        `yaml:"url"`
-		CA         string        `yaml:"ca"`
-		Insecure   bool          `yaml:"insecure"`
-		MaxRetries int           `yaml:"maxRetries"`
-		interval   time.Duration `yaml:"interval"`
+		URL        string `yaml:"url"`
+		CA         string `yaml:"ca"`
+		Insecure   bool   `yaml:"insecure"`
+		MaxRetries int    `yaml:"maxRetries"`
+		Interval   int    `yaml:"interval"`
 	} `yaml:"httpChecks"`
 	KubectlChecks []struct {
-		LabelSelector  string        `yaml:"labelSelector"`
-		Namespace      string        `yaml:"namespace"`
-		Node           string        `yaml:"node"`
-		ExpectedStatus string        `yaml:"expectedStatus"`
-		MaxRetries     int           `yaml:"maxRetries"`
-		interval       time.Duration `yaml:"interval"`
+		LabelSelector  string `yaml:"labelSelector"`
+		Namespace      string `yaml:"namespace"`
+		Node           string `yaml:"node"`
+		ExpectedStatus string `yaml:"expectedStatus"`
+		MaxRetries     int    `yaml:"maxRetries"`
+		Interval       int    `yaml:"interval"`
 	} `yaml:"kubectlChecks"`
 }
 
 type PackageConfig struct {
-	Name     string  `yaml:"name"`
-	Driver   string  `yaml:"driver"`
-	Manifest *string `yaml:"manifest"`
-	Repo     struct {
+	Name       string  `yaml:"name"`
+	LeaderOnly bool    `yaml:"leaderOnly"`
+	Driver     string  `yaml:"driver"`
+	Manifest   *string `yaml:"manifest"`
+	Repo       struct {
 		Name string `yaml:"name"`
 	} `yaml:"repo"`
 	Chart *ChartConfig `yaml:"chart"`
