@@ -9,9 +9,9 @@
 - parametrise initial wait time
 - add some codebase testing (30%/40%)
 - add initial checks
-- add final checks functionality
 - add config validation
     - fix missing namespace in chart installation error
+- add checks to pre and post migration workflows
 
 # terraform/workflow
 - upload binary on github.com

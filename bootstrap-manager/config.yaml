@@ -33,15 +33,10 @@ migration:
   manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
   leaderOnly: true
   httpChecks:
-  - url: https://apiserver.kubernetes.local:6443/version
+  - insecure: false
+    url: https://apiserver.kubernetes.local:6443/version
     ca: /etc/kubernetes/ssl/ca.crt
-    insecure: false
     maxRetries: 30
     interval: 10
 
-    # - type: kubectl
-    #   selector: app=kube-apiserver
-    #   nodeName: controller-0-mytestcluster 
-
 postMigration: []
-finalChecks: []
