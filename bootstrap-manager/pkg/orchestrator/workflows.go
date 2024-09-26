@@ -4,15 +4,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"sort"
 	"time"
 
+	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/executor"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/rand"
 	corev1 "k8s.io/api/core/v1"
 )
 
 func (o *Orchestrator) runInitialChecks() error {
+
+	// pre migration checks
+	for _, cfg := range o.Config.PreMigration {
+		if cfg.Driver == executor.KUBECTL_DRIVER {
+			if _, err := os.Stat(cfg.Manifest); err != nil {
+				return fmt.Errorf("failed to stat '%s' => %v", cfg.Manifest, err)
+			}
+		}
+		// check helm index.yaml
+	}
+
+	// migration checks
+	for _, cfg := range o.Config.Migration {
+		if exists, err := o.Executor.ServiceExists(cfg.SystemdUnit); !exists || err != nil {
+			return fmt.Errorf("systemd unit '%s' doesn't not exists or systemd is not running properly '%v'", cfg.SystemdUnit, err)
+		}
+		if _, err := os.Stat(cfg.Manifest); err != nil {
+			return fmt.Errorf("failed to stat '%s' => %v", cfg.Manifest, err)
+		}
+	}
+
 	return nil
 }
 
@@ -63,7 +86,6 @@ func (o *Orchestrator) preMigrationWorkflow() error {
 
 		if pkg.LeaderOnly && o.Leader != o.Config.NodeName {
 			logrus.Infof("not the leader, sleeping for 5 seconds to allow the leader to perform preMigration steps")
-			time.Sleep(5 * time.Second)
 			continue
 		}
 
@@ -75,7 +97,7 @@ func (o *Orchestrator) preMigrationWorkflow() error {
 			}
 
 		} else if pkg.Driver == "kubectl" {
-			err := o.Executor.KubectlApply(*pkg.Manifest)
+			err := o.Executor.KubectlApply(pkg.Manifest)
 			if err != nil {
 				return fmt.Errorf("kubectl apply failed: %v", err)
 			}
@@ -246,20 +268,17 @@ func (o *Orchestrator) waitForMigration(namespace, name string, maxRetries, inte
 
 func (o *Orchestrator) RunMainWorkflow() error {
 
+	// used for dynamicValidation of the config
 	err := o.runInitialChecks()
 	if err != nil {
 		return err
 	}
-
-	// check systemd services
-	// check for api-server to come up
 
 	err = o.leaderElection()
 	if err != nil {
 		return err
 	}
 
-	// PreMigration stesp
 	err = o.preMigrationWorkflow()
 	if err != nil {
 		return err
@@ -270,6 +289,7 @@ func (o *Orchestrator) RunMainWorkflow() error {
 		return err
 	}
 
+	// TODO:
 	// PostMigration
 	// o.runPostMigrationWorkflow()
 

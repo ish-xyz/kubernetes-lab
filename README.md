@@ -5,20 +5,15 @@
 
 # bm coding
 - add logging
-- parametrise initial wait time
 - add some codebase testing (30%/40%)
-- add initial checks
-    - check systemd units exists
 - add config validation
     - fix missing namespace in chart installation error
 - test edge cases:
     - misconfigurations
-        - non existent systemd units or disabled (migration)
-        - non existent manifests (migration)
         - invalid helm charts (preMigration)
-        - invalid manifests (preMigration)
-        - does namespace exist for sync configmaps
-        - does the kubeconfig exists
+
+- revert if migration step failed
+- reload systemd daemons at end of the migration?
 
 # terraform/workflow
 - upload binary on github.com

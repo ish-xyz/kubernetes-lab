@@ -19,11 +19,6 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-const (
-	DEFAULT_NAMESPACE = "default"
-	YAML_DELIMITER    = "---"
-)
-
 func getNamespace(obj *unstructured.Unstructured, mapping *meta.RESTMapping) string {
 	// Default to "default" namespace if not specified
 	namespace := obj.GetNamespace()

@@ -100,6 +100,10 @@ func (e *Executor) HelmInstall(chart *config.ChartConfig, kubeconfigPath string)
 
 func (e *Executor) helmInstall(chart *config.ChartConfig, kubeconfigPath string) error {
 
+	if chart.Namespace == "" {
+		chart.Namespace = DEFAULT_NAMESPACE
+	}
+
 	outFilePath := fmt.Sprintf("%s/%s-%s.tgz", e.TempFolder, chart.Name, chart.Version)
 	err := e.helmDownload(chart.Url, chart.Name, chart.Version, outFilePath)
 	if err != nil {

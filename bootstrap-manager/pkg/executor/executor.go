@@ -8,6 +8,14 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
+const (
+	KUBECTL_DRIVER    = "kubectl"
+	HELM_DRIVER       = "helm"
+	DEFAULT_NAMESPACE = "default"
+	YAML_DELIMITER    = "---"
+	SYSTEMD_DONE      = "done"
+)
+
 type Executor struct {
 	SystemdConn     *dbus.Conn
 	KubeClient      *kubernetes.Clientset

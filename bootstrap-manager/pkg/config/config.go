@@ -38,10 +38,10 @@ type MigrationConfig struct {
 }
 
 type PackageConfig struct {
-	Name       string  `yaml:"name"`
-	LeaderOnly bool    `yaml:"leaderOnly"`
-	Driver     string  `yaml:"driver"`
-	Manifest   *string `yaml:"manifest"`
+	Name       string `yaml:"name"`
+	LeaderOnly bool   `yaml:"leaderOnly"`
+	Driver     string `yaml:"driver"`
+	Manifest   string `yaml:"manifest"`
 	Repo       struct {
 		Name string `yaml:"name"`
 	} `yaml:"repo"`

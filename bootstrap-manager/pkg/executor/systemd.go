@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,8 +31,38 @@ func waitForChannel(ch chan string) (string, error) {
 }
 
 func (e *Executor) DisableServices(units []string) error {
-	_, err := e.SystemdConn.DisableUnitFilesContext(context.TODO(), units, false)
+	var err error
+	for retry := 0; retry <= 10; retry++ {
+		_, err = e.SystemdConn.DisableUnitFilesContext(context.TODO(), units, false)
+		if err == nil {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
 	return err
+}
+
+func (e *Executor) ServiceExists(unit string) (bool, error) {
+
+	var err error
+	var units []dbus.UnitStatus
+	for retry := 0; retry < 10; retry++ {
+		units, err = e.SystemdConn.ListUnitsContext(context.TODO())
+		if err == nil {
+			break
+		}
+		time.Sleep(750 * time.Millisecond)
+	}
+	if err != nil {
+		return false, err
+	}
+
+	for _, u := range units {
+		if u.Name == unit {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (e *Executor) StopService(svc string) error {
