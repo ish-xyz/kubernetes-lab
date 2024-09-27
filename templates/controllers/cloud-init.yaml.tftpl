@@ -78,7 +78,7 @@ write_files:
   content: ${unit.content}
 %{ endfor ~}
 
-- path: /etc/kubernetes/default-roles.yaml
+- path: /etc/kubernetes/manifests/default-roles.yaml
   owner: root:root
   permissions: '0644'
   defer: true

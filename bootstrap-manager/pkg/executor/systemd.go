@@ -9,9 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	SYSTEMD_DONE = "done"
-)
+
 
 // Wait for the channel for 10 minutes trying every 5 seconds to read from it
 func waitForChannel(ch chan string) (string, error) {

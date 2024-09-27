@@ -23,7 +23,7 @@ func (o *Orchestrator) runInitialChecks() error {
 				return fmt.Errorf("failed to stat '%s' => %v", cfg.Manifest, err)
 			}
 		}
-		// check helm index.yaml
+		//TODO: check helm index.yaml
 	}
 
 	// migration checks
@@ -216,15 +216,14 @@ func (o *Orchestrator) execMigration(cmObj *corev1.ConfigMap) error {
 			if err != nil {
 				return err
 			}
-			if urlObj.Scheme == "https" {
-				o.Executor.HTTPSCheck(
-					check.URL,
-					check.CA,
-					check.Insecure,
-					check.MaxRetries,
-					check.Interval,
-				)
-			}
+			o.Executor.URLCheck(
+				check.URL,
+				check.CA,
+				check.Insecure,
+				urlObj.Scheme == "https",
+				check.MaxRetries,
+				check.Interval,
+			)
 		}
 
 		err = o.updateMigrationStatus(cmObj, resource.Key, "true")

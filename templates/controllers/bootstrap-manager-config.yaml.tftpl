@@ -1,0 +1,42 @@
+kubeconfig: /etc/kubernetes/admin.kubeconfig
+nodeName: ${node_name}
+sync:
+  nodesCount: ${node_count}
+  resources:
+    namespace: default
+    prefix: bootstrap-manager
+
+preMigration:
+
+- name: default-roles
+  leaderOnly: true
+  driver: kubectl
+  manifest: ${kube_config_dir}/default-roles.yaml
+
+- name: cilium-cni
+  leaderOnly: true
+  driver: helm
+  chart:
+    url: https://helm.cilium.io/
+    name: cilium
+    releaseName: cilium
+    version: 1.16.1
+    namespace: "kube-system"
+    values:
+      kubeProxyReplacement: true
+      k8sServiceHost: ${lb_apiserver_address}
+      k8sServicePort: 6443
+
+migration:
+- key: kube-apiserver
+  systemdUnit: kube-apiserver.service
+  manifest: ${kube_config_dir}/manifests/kube-apiserver.yaml
+  leaderOnly: true
+  httpChecks:
+  - insecure: false
+    url: https://${kube_apiserver_local}:6443/version
+    ca: ${kube_certs_dir}/ca.crt
+    maxRetries: 30
+    interval: 10
+
+postMigration: []

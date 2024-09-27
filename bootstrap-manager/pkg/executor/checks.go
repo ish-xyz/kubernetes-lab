@@ -11,81 +11,42 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// func (e *Executor) HTTPSCheck(url, caPath string, insecure bool, maxRetries, interval int) error {
-// 	// Load the system certificate pool
-// 	rootCAs, err := x509.SystemCertPool()
-// 	if err != nil {
-// 		return fmt.Errorf("error getting system cert pool: %v", err)
-// 	}
+func (e *Executor) URLCheck(url, caPath string, insecure, isTLS bool, maxRetries, interval int) error {
 
-// 	// Create a new empty CertPool to avoid potential issues with system certs
-// 	customCertPool := x509.NewCertPool()
+	var client *http.Client
 
-// 	cafile, err := os.ReadFile(caPath)
-// 	if err != nil {
-// 		return fmt.Errorf("error while checking url %s => %v", url, err)
-// 	}
-
-// 	if ok := customCertPool.AppendCertsFromPEM(cafile); !ok {
-// 		logrus.Infoln("No certs appended, using system certs only to call", url)
-// 	}
-
-// 	tlsConfig := &tls.Config{
-// 		InsecureSkipVerify: insecure,
-// 		ClientCAs:          append(rootCAs., customCertPool.Certificates()...),
-// 	}
-
-// 	tr := &http.Transport{TLSClientConfig: tlsConfig}
-// 	client := &http.Client{Transport: tr}
-// 	req, err := http.NewRequest(http.MethodGet, url, nil)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create request to check url '%s' => '%v'", url, err)
-// 	}
-
-// 	for retry := 0; retry < maxRetries; retry++ {
-// 		logrus.Infof("trying to query %s", url)
-// 		resp, err := client.Do(req)
-// 		fmt.Println(err)
-// 		if err == nil {
-// 			fmt.Println(resp.StatusCode)
-// 			if resp.StatusCode == http.StatusOK {
-// 				return nil
-// 			}
-// 		}
-// 		time.Sleep(time.Duration(interval) * time.Second)
-// 	}
-// 	return fmt.Errorf("timeout check against %s took too long", url)
-// }
-
-func (e *Executor) HTTPSCheck(url, caPath string, insecure bool, maxRetries, interval int) error {
-
-	rootCAs, _ := x509.SystemCertPool()
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
-	}
-
-	// Only read and append the custom CA if caPath is provided
-	if caPath != "" {
-		caFile, err := os.ReadFile(caPath)
-		if err != nil {
-			return fmt.Errorf("error reading CA file %s: %v", caPath, err)
+	if isTLS {
+		rootCAs, _ := x509.SystemCertPool()
+		if rootCAs == nil {
+			rootCAs = x509.NewCertPool()
 		}
 
-		if ok := rootCAs.AppendCertsFromPEM(caFile); !ok {
-			return fmt.Errorf("failed to append CA certificate from %s", caPath)
+		// Only read and append the custom CA if caPath is provided
+		if caPath != "" {
+			caFile, err := os.ReadFile(caPath)
+			if err != nil {
+				return fmt.Errorf("error reading CA file %s: %v", caPath, err)
+			}
+
+			if ok := rootCAs.AppendCertsFromPEM(caFile); !ok {
+				return fmt.Errorf("failed to append CA certificate from %s", caPath)
+			}
+			logrus.Infof("Custom CA certificate appended from %s", caPath)
+		} else {
+			logrus.Infoln("No custom CA provided, using system certs only")
 		}
-		logrus.Infof("Custom CA certificate appended from %s", caPath)
+
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: insecure,
+			RootCAs:            rootCAs, // Use RootCAs instead of ClientCAs
+		}
+
+		tr := &http.Transport{TLSClientConfig: tlsConfig}
+		client = &http.Client{Transport: tr}
 	} else {
-		logrus.Infoln("No custom CA provided, using system certs only")
+		client = &http.Client{}
 	}
 
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: insecure,
-		RootCAs:            rootCAs, // Use RootCAs instead of ClientCAs
-	}
-
-	tr := &http.Transport{TLSClientConfig: tlsConfig}
-	client := &http.Client{Transport: tr}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request to check url '%s': %v", url, err)
@@ -109,11 +70,6 @@ func (e *Executor) HTTPSCheck(url, caPath string, insecure bool, maxRetries, int
 	}
 
 	return fmt.Errorf("timeout: check against %s failed after %d attempts", url, maxRetries)
-}
-
-func (e *Executor) HTTPCheck(url string) error {
-
-	return nil
 }
 
 func (e *Executor) KubectlCheck() error {

@@ -25,3 +25,8 @@
     - add user zero to kubernetes group
 
 
+
+
+Isham Araia is an Engineer, working with Vincent Aniello, in our London office. 
+Isham joined BAM in October 2024 from G-Research, where he was a Lead Engineer in the core platform team. 
+He supports Rocking the Boat, a youth-oriented program that helps kids become self-sufficient through boatbuilding.

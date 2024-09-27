@@ -226,7 +226,6 @@ data "template_file" "controllers_cloud_init" {
     dns_config = base64encode(data.template_file.resolved_config.rendered)
     hosts_config = base64encode(file("${path.module}/files/hosts"))
     containerd_config = base64encode(file("${path.module}/files/containerd.toml"))
-    default_roles = base64encode(file("${path.module}/files/default-roles.yaml"))
     systemd_units = jsonencode([
       {
         name = "etcd"
@@ -286,6 +285,10 @@ data "template_file" "controllers_cloud_init" {
       {
         name = "manifests/kube-apiserver.yaml"
         content = base64encode(data.template_file.controllers_kube_apiserver_manifest.rendered)
+      },
+      {
+        name = "manifests/default-roles.yaml"
+        content = base64encode(file("${path.module}/files/default-roles.yaml"))
       }
     ])
     kube_certs = jsonencode([
