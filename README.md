@@ -1,32 +1,6 @@
-# kubernetes-lab
+# Kubernetes-lab
 
+This repo contains terraform, and cloud-init configurations to spin up a Kubernetes cluster from scratch on AWS.
 
-**TODO:**
+It also contains a bootstrap manager that is used to bootstrap the kubernetes control-plane in conjunction with cloud-init.
 
-# bm coding
-- add logging
-- add some codebase testing (30%/40%)
-- add config validation
-    - fix missing namespace in chart installation error
-- test edge cases:
-    - misconfigurations
-        - invalid helm charts (preMigration)
-
-- revert if migration step failed
-- reload systemd daemons at end of the migration?
-
-# terraform/workflow
-- upload binary on github.com
-- create systemd unit for bootstrap manager
-- download bootstrap manager via cloud init
-- reprovision cluster via terraform and try workflow
-- fix kubeconfig file permissions (640)
-    - create kubernetes group
-    - add user zero to kubernetes group
-
-
-
-
-Isham Araia is an Engineer, working with Vincent Aniello, in our London office. 
-Isham joined BAM in October 2024 from G-Research, where he was a Lead Engineer in the core platform team. 
-He supports Rocking the Boat, a youth-oriented program that helps kids become self-sufficient through boatbuilding.
