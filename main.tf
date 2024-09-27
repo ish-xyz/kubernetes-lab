@@ -23,3 +23,8 @@ data "template_file" "resolved_config" {
       nameservers_list = join(" ", [for _, ns in data.dns_a_record_set.name_servers: join(" ", [for _, ip in ns.addrs: ip])])
     }
 }
+
+data "aws_key_pair" "ssh_key" {
+  key_name           = var.key_name
+  include_public_key = true
+}

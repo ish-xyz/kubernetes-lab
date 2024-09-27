@@ -25,6 +25,7 @@ resource "aws_instance" "controllers" {
               EOF
 }
 
+
 # DNS Records for controllers
 resource "aws_route53_record" "controllers" {
   for_each  = aws_instance.controllers
@@ -244,6 +245,7 @@ data "template_file" "controllers_cloud_init" {
     hosts_config = base64encode(file("${path.module}/files/hosts"))
     containerd_config = base64encode(file("${path.module}/files/containerd.toml"))
     bootstrap_manager_config = base64encode(data.template_file.controllers_bootstrap_manager_config[each.key].rendered)
+    ssh_public_key = data.aws_key_pair.ssh_key.public_key
     systemd_units = jsonencode([
       {
         name = "etcd"

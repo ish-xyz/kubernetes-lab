@@ -54,6 +54,7 @@ data "template_file" "load_balancer_cloud_init" {
         fqdn = "${each.value}.${var.domain}"
         packages = jsonencode(["haproxy", "net-tools"])
         resolved_config = base64encode(data.template_file.resolved_config.rendered)
+        ssh_public_key = data.aws_key_pair.ssh_key.public_key
         haproxy_config = base64encode(data.template_file.load_balancer_haproxy_cfg.rendered)
     }
 }

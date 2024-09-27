@@ -111,6 +111,7 @@ data "template_file" "workers_cloud_init" {
     # write files
     dns_config = base64encode(data.template_file.resolved_config.rendered)
     containerd_config = base64encode(file("${path.module}/files/containerd.toml"))
+    ssh_public_key = data.aws_key_pair.ssh_key.public_key
     systemd_units = jsonencode([
       {
         name = "containerd"

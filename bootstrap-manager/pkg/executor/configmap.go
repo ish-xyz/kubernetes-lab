@@ -31,6 +31,9 @@ func (e *Executor) CreateBootstrapConfigMap(data map[string]string) (*corev1.Con
 	for retry := 0; retry < 90; retry++ {
 		cmObj, err = e.KubeClient.CoreV1().ConfigMaps(e.Namespace).Create(context.TODO(), &cm, metav1.CreateOptions{})
 		time.Sleep(time.Duration(10) * time.Second)
+		if err == nil {
+			break
+		}
 	}
 	return cmObj, err
 }

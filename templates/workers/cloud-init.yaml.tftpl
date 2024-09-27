@@ -11,7 +11,7 @@ users:
   shell: /bin/bash
   lock_passwd: true
   ssh_authorized_keys:
-    - 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCDLbwGSWj/Y0b9uoVqJzr0BNqAAMgcapiEO6CSSmCnaCWzjEbGxHmvnghsKHqo291H08UKlMSqRocVD3kj/vlqquregAaYTZeNg2ZY1kqDw49X8cVNjukggtH23BbRmXgSXuBaHQaN2XtL2pOnZTRhnedSyVCVVazzrGOuGELCxUd+HnADUIaIf1hD/WiKxNxMT4YqWmkmdxgyC0Fp4eeU/W+eCzmsZeGgxW9DG77e9te76p3wi5Hj/8oj/U8nwY78UhkP+mAuw+c4YjoADVskz3yCK2yRQPPOiF3s1lS1kM5qv/GLUsgGCpqgUJo16rziOBccn0AX+oGvzrGoiJd1'
+    - '${ssh_public_key}'
 - name: etcd
   gecos: etcd
   shell: /usr/sbin/nologin

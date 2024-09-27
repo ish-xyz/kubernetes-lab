@@ -2,11 +2,10 @@
 Description=Run script once after first reboot
 After=network.target
 ConditionPathExists=!/var/lib/run-once-flag
-ConditionPathExists=/custom-cloud-init-done
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'sleep 300 && /usr/local/bin/bootstrap-manager --config /etc/bootstrap-manager/config.yaml && touch /var/lib/run-once-flag'
+ExecStart=/bin/bash -c '[[ -f /custom-cloud-init-done ]] && /usr/local/bin/bootstrap-manager --config /etc/bootstrap-manager/config.yaml 2>&1 | tee -a /var/log/bootstrap-manager.log && touch /var/lib/run-once-flag || echo "waiting for cloud-init to finish"'
 RemainAfterExit=true
 User=root
 
