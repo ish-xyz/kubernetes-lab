@@ -78,12 +78,12 @@ write_files:
   content: ${unit.content}
 %{ endfor ~}
 
-- path: /etc/kubernetes/manifests/default-roles.yaml
+- path: /etc/bootstrap-manager/config.yaml
   owner: root:root
   permissions: '0644'
   defer: true
   encoding: b64
-  content: ${default_roles}
+  content: ${bootstrap_manager_config}
 
 - path: /etc/containerd/config.toml
   owner: root:root
@@ -130,6 +130,7 @@ runcmd:
 - 'curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl'
 - 'curl -L -o /tmp/${etcd_full_version}.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz'
 - 'curl -L -o /tmp/helm.tar.gz https://get.helm.sh/helm-${helm_version}-linux-${arch}.tar.gz'
+- 'curl -L -o /usr/local/bin/bootstrap-manager https://github.com/ish-xyz/new-ish-ar.io/releases/download/v1/bootstrap-manager'
 
 ###  extract binaries
 - 'mkdir /tmp/crictl; tar -xvf /tmp/crictl.tar.gz -C /tmp/crictl/'

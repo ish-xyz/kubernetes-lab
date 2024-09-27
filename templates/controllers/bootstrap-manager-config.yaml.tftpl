@@ -2,9 +2,8 @@ kubeconfig: /etc/kubernetes/admin.kubeconfig
 nodeName: ${node_name}
 sync:
   nodesCount: ${node_count}
-  resources:
-    namespace: default
-    prefix: bootstrap-manager
+  namespace: default
+  prefix: bootstrap-manager
 
 preMigration:
 
@@ -34,7 +33,7 @@ migration:
   leaderOnly: true
   httpChecks:
   - insecure: false
-    url: https://${kube_apiserver_local}:6443/version
+    url: https://apiserver.kubernetes.local:6443/version
     ca: ${kube_certs_dir}/ca.crt
     maxRetries: 30
     interval: 10

@@ -141,6 +141,18 @@ data "template_file" "controllers_kube_scheduler_config" {
     }
 }
 
+data "template_file" "controllers_bootstrap_manager_config" {
+    for_each = toset(local.controllers_set)
+    template = file("${path.module}/templates/controllers/bootstrap-manager-config.yaml.tftpl")
+    vars = {
+      node_name = each.value
+      node_count = var.controllers_count
+      kube_config_dir = local.kube_config_dir
+      kube_certs_dir = local.kube_certs_dir
+      lb_apiserver_address = local.lb_apiserver_address
+    }
+}
+
 data "template_file" "controllers_kube_apiserver_manifest" {
     template = file("${path.module}/templates/controllers/manifest-kube-apiserver.yaml.tftpl")
     vars = {
@@ -231,6 +243,7 @@ data "template_file" "controllers_cloud_init" {
     dns_config = base64encode(data.template_file.resolved_config.rendered)
     hosts_config = base64encode(file("${path.module}/files/hosts"))
     containerd_config = base64encode(file("${path.module}/files/containerd.toml"))
+    bootstrap_manager_config = base64encode(data.template_file.controllers_bootstrap_manager_config[each.key].rendered)
     systemd_units = jsonencode([
       {
         name = "bootstrap-manager"
