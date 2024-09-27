@@ -10,7 +10,7 @@ preMigration:
 - name: default-roles
   leaderOnly: true
   driver: kubectl
-  manifest: ${kube_config_dir}/default-roles.yaml
+  manifest: ${kube_config_dir}/manifests/default-roles.yaml
 
 - name: cilium-cni
   leaderOnly: true

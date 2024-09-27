@@ -13,6 +13,8 @@ import (
 // Create Bootstrap Configmaps
 func (e *Executor) CreateBootstrapConfigMap(data map[string]string) (*corev1.ConfigMap, error) {
 
+	var cmObj *corev1.ConfigMap
+	var err error
 	cm := corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -26,8 +28,10 @@ func (e *Executor) CreateBootstrapConfigMap(data map[string]string) (*corev1.Con
 		},
 		Data: data,
 	}
-	cmObj, err := e.KubeClient.CoreV1().ConfigMaps(e.Namespace).Create(context.TODO(), &cm, metav1.CreateOptions{})
-
+	for retry := 0; retry < 90; retry++ {
+		cmObj, err = e.KubeClient.CoreV1().ConfigMaps(e.Namespace).Create(context.TODO(), &cm, metav1.CreateOptions{})
+		time.Sleep(time.Duration(10) * time.Second)
+	}
 	return cmObj, err
 }
 
