@@ -106,20 +106,11 @@ write_files:
   encoding: b64
   content: ${dns_config}
 
-- path: /custom-cloud-init-done
-  owner: root:root
-  permissions: '0644'
-  defer: true
-  encoding: b64
-  content: "MQo="
-
 runcmd:
 ### system requirements
 - 'systemctl restart systemd-resolved'
 - 'swapoff -a'
-###
-
-### download binaries
+### binaries
 - 'curl -L -o /tmp/crictl.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/${kube_version}/crictl-${kube_version}-linux-${arch}.tar.gz'
 - 'curl -L -o /tmp/containerd.tar.gz https://github.com/containerd/containerd/releases/download/v${containerd_version}/containerd-${containerd_version}-linux-${arch}.tar.gz'
 - 'curl -L -o /usr/local/bin/kube-controller-manager https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kube-controller-manager'
@@ -131,14 +122,12 @@ runcmd:
 - 'curl -L -o /tmp/${etcd_full_version}.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz'
 - 'curl -L -o /tmp/helm.tar.gz https://get.helm.sh/helm-${helm_version}-linux-${arch}.tar.gz'
 - 'curl -L -o /usr/local/bin/bootstrap-manager https://github.com/ish-xyz/new-ish-ar.io/releases/download/v1/bootstrap-manager'
-
-###  extract binaries
+## 
 - 'mkdir /tmp/crictl; tar -xvf /tmp/crictl.tar.gz -C /tmp/crictl/'
 - 'mkdir /tmp/containerd; tar -xvf /tmp/containerd.tar.gz -C /tmp/containerd/'
 - 'mkdir /tmp/etcd; tar -xvf /tmp/${etcd_full_version}.tar.gz -C /tmp/etcd/'
 - 'mkdir /tmp/helm; tar -xvf /tmp/helm.tar.gz -C /tmp/helm/'
 
-### move binaries
 - 'mv /tmp/crictl/crictl /usr/local/bin/'
 - 'mv /tmp/containerd/bin/* /usr/local/bin/'
 - 'mv /tmp/etcd/${etcd_full_version}/etcd /usr/local/bin/'
@@ -146,11 +135,15 @@ runcmd:
 - 'mv /tmp/etcd/${etcd_full_version}/etcdutl /usr/local/bin/'
 - 'mv /tmp/helm/linux-${arch}/helm /usr/local/bin/'
 - 'chmod +x /usr/local/bin/*'
-###
 
-### new systemd units
+# Just for debug
+- 'echo "debug" > /custom-cloud-init-done'
+
 %{ for unit in jsondecode(systemd_units) ~}
 - [systemctl, enable, ${unit.name}]
 - [systemctl, start, ${unit.name}]
 %{ endfor ~}
 ###
+
+### Keep at the end
+- 'echo "done" > /custom-cloud-init-done'

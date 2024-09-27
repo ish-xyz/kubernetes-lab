@@ -246,10 +246,6 @@ data "template_file" "controllers_cloud_init" {
     bootstrap_manager_config = base64encode(data.template_file.controllers_bootstrap_manager_config[each.key].rendered)
     systemd_units = jsonencode([
       {
-        name = "bootstrap-manager"
-        content = base64encode(data.template_file.controllers_bootstrap_manager_systemd_unit[each.key].rendered)
-      },
-      {
         name = "etcd"
         content = base64encode(data.template_file.controllers_etcd_systemd_unit[each.key].rendered)
       },
@@ -273,7 +269,10 @@ data "template_file" "controllers_cloud_init" {
         name = "kubelet"
         content = base64encode(data.template_file.controllers_kubelet_systemd_unit.rendered)
       },
-
+      {
+        name = "bootstrap-manager"
+        content = base64encode(data.template_file.controllers_bootstrap_manager_systemd_unit[each.key].rendered)
+      },
     ])
     kube_configs = jsonencode([
       {

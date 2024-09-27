@@ -1,6 +1,6 @@
 [Unit]
 Description=Run script once after first reboot
-After=network.target kube-apiserver.service
+After=network.target
 ConditionPathExists=!/var/lib/run-once-flag
 ConditionPathExists=/custom-cloud-init-done
 
