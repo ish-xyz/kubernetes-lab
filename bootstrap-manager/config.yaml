@@ -1,10 +1,9 @@
-kubeconfig: /etc/kubernetes/admin.kubeconfig
+kubeconfig: /home/waffle34/.kube/config
 nodeName: controller-0-mytestcluster
 sync:
   nodesCount: 3
-  resources:
-    namespace: default
-    prefix: bootstrap-manager
+  namespace: default
+  prefix: bootstrap-manager
 
 preMigration:
 

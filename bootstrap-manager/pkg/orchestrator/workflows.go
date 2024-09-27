@@ -265,6 +265,37 @@ func (o *Orchestrator) waitForMigration(namespace, name string, maxRetries, inte
 	return false, nil
 }
 
+func (o *Orchestrator) postMigrationWorkflow() error {
+
+	logrus.Infoln("starting pre migration workflow...")
+	for _, pkg := range o.Config.PostMigration {
+
+		if pkg.LeaderOnly && o.Leader != o.Config.NodeName {
+			logrus.Infof("not the leader, skipping postMigration")
+			continue
+		}
+
+		logrus.Infof(">>> processing package: %s with driver %s", pkg.Name, pkg.Driver)
+		if pkg.Driver == "helm" {
+			err := o.Executor.HelmInstall(pkg.Chart, o.Config.Kubeconfig)
+			if err != nil {
+				return fmt.Errorf("helm installation failed: %v", err)
+			}
+
+		} else if pkg.Driver == "kubectl" {
+			err := o.Executor.KubectlApply(pkg.Manifest)
+			if err != nil {
+				return fmt.Errorf("kubectl apply failed: %v", err)
+			}
+		}
+
+		// speculative sleep
+		time.Sleep(5 * time.Second)
+	}
+
+	return nil
+}
+
 func (o *Orchestrator) RunMainWorkflow() error {
 
 	// used for dynamicValidation of the config
@@ -283,14 +314,15 @@ func (o *Orchestrator) RunMainWorkflow() error {
 		return err
 	}
 
-	err = o.migrationWorkflow(o.Config.Sync.Resources.Namespace, o.Config.NodeName)
+	err = o.migrationWorkflow(o.Config.Sync.Namespace, o.Config.NodeName)
 	if err != nil {
 		return err
 	}
 
-	// TODO:
-	// PostMigration
-	// o.runPostMigrationWorkflow()
+	err = o.postMigrationWorkflow()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
