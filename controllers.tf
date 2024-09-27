@@ -23,7 +23,6 @@ resource "aws_instance" "controllers" {
               curl -L -o /etc/cloud/cloud.cfg.d/custom.cfg $cloud_config_url
               [[ ! -f /custom-cloud-init-done ]] && cloud-init clean --logs --reboot
               EOF
-
 }
 
 # DNS Records for controllers
@@ -46,6 +45,12 @@ resource "aws_s3_object" "controllers_cloud_init" {
 # Templates
 
 ## Systemd units templates
+
+data "template_file" "controllers_bootstrap_manager_systemd_unit" {
+    for_each = toset(local.controllers_set)
+    template = file("${path.module}/templates/controllers/service-bootstrap-manager.tftpl")
+    vars = {}
+}
 
 data "template_file" "controllers_etcd_systemd_unit" {
     for_each = toset(local.controllers_set)
@@ -114,8 +119,8 @@ resource "random_password" "etcd_token" {
 data "template_file" "etcd_encryption_config" {
   template = file("${path.module}/templates/controllers/encryption-config.yaml.tftpl")
   vars = {
-      key_1 = "ivV84gTtStZstvT3en7MVqNANfKKKU8vTFzl/N8MEM4=" #TODO: move to variable or auto-generate
-      key_2 = "MZ5vNy7kCmfFAr7mnQj4yUV36d1qLnTCpSnK0NGGc0k=" #TODO: move to variable or auto-generate
+    key_1 = var.etcd_key1
+    key_2 = var.etcd_key2
   }
 }
 
@@ -227,6 +232,10 @@ data "template_file" "controllers_cloud_init" {
     hosts_config = base64encode(file("${path.module}/files/hosts"))
     containerd_config = base64encode(file("${path.module}/files/containerd.toml"))
     systemd_units = jsonencode([
+      {
+        name = "bootstrap-manager"
+        content = base64encode(data.template_file.controllers_bootstrap_manager_systemd_unit[each.key].rendered)
+      },
       {
         name = "etcd"
         content = base64encode(data.template_file.controllers_etcd_systemd_unit[each.key].rendered)

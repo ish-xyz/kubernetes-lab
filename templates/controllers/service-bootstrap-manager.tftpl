@@ -1,0 +1,13 @@
+[Unit]
+Description=Run script once after first reboot
+After=network.target cloud-init.service
+ConditionPathExists=!/var/lib/run-once-flag
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '/usr/local/bin/bootstrap-manager --config /etc/bootstrap-manager/config.yaml && touch /var/lib/run-once-flag'
+RemainAfterExit=true
+User=root
+
+[Install]
+WantedBy=multi-user.target

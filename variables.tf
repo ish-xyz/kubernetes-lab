@@ -125,3 +125,13 @@ variable "controllers_instance_type" {
     type = string
     default = "t3.medium" 
 }
+
+variable "etcd_key1" {
+    type = string
+    default = "ivV84gTtStZstvT3en7MVqNANfKKKU8vTFzl/N8MEM4="
+}
+
+variable "etcd_key2" {
+    type = string
+    default = "MZ5vNy7kCmfFAr7mnQj4yUV36d1qLnTCpSnK0NGGc0k="
+}

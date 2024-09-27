@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/config"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/executor"
 	"github.com/ish-xyz/kubernetes-lab/bootstrap-manager/pkg/orchestrator"
@@ -106,19 +108,17 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	rsm := getRestMapper(dsc)
-	// systemdConn, err := dbus.NewSystemConnectionContext(context.TODO())
-	// if err != nil {
-	// 	return fmt.Errorf("failed to initiate connection to dbus for systemd management")
-	// }
+	systemdConn, err := dbus.NewSystemConnectionContext(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to initiate connection to dbus for systemd management")
+	}
 
 	if err := config.Validate(cfg); err != nil {
 		return fmt.Errorf("invalid configuration: %v", err)
 	}
 
-	return nil
-
 	exec := executor.NewExecutor(
-		nil,
+		systemdConn,
 		kcl,
 		dsc,
 		dvc,
