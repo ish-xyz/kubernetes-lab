@@ -17,4 +17,5 @@ locals {
 
   kube_config_dir = "/etc/kubernetes"
   kube_certs_dir = "${local.kube_config_dir}/ssl"
+
 }

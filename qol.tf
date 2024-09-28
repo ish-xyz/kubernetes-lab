@@ -1,6 +1,6 @@
 
 resource "local_file" "admin_kubeconfig" {
-  content  = data.template_file.controllers_kubeconfig_admin.rendered
+  content  = local.controllers_kubeconfig_admin
   filename = "${path.module}/terraform-output-files/admin.kubeconfig"
 }
 
