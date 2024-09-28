@@ -85,7 +85,7 @@ func (o *Orchestrator) preMigrationWorkflow() error {
 	for _, pkg := range o.Config.PreMigration {
 
 		if pkg.LeaderOnly && o.Leader != o.Config.NodeName {
-			logrus.Infof("not the leader, sleeping for 5 seconds to allow the leader to perform preMigration steps")
+			logrus.Infof("not the leader, skipping pre migration steps")
 			continue
 		}
 
@@ -267,7 +267,7 @@ func (o *Orchestrator) waitForMigration(namespace, name string, maxRetries, inte
 
 func (o *Orchestrator) postMigrationWorkflow() error {
 
-	logrus.Infoln("starting pre migration workflow...")
+	logrus.Infoln("starting post migration workflow...")
 	for _, pkg := range o.Config.PostMigration {
 
 		if pkg.LeaderOnly && o.Leader != o.Config.NodeName {
