@@ -324,5 +324,6 @@ func (o *Orchestrator) RunMainWorkflow() error {
 		return err
 	}
 
+	logrus.Infoln("operation completed!")
 	return nil
 }
