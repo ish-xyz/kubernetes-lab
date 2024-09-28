@@ -229,7 +229,7 @@ locals {
         },
         {
           name    = "bootstrap-manager"
-          content = base64encode(local.controllers_bootstrap_manager_configs[controller])
+          content = base64encode(local.controllers_bootstrap_manager_systemd_unit[each.key])
         },
       ])
       kube_configs          = jsonencode([
