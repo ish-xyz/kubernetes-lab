@@ -1,6 +1,6 @@
 locals {
   resolved_config = templatefile(
-    "${path.module}/template/shared/resolved.conf.tftpl",
+    "${path.module}/templates/shared/resolved.conf.tftpl",
     {
       domain = var.domain
       aws_region = var.aws_region

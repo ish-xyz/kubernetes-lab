@@ -6,3 +6,5 @@ export.sh
 .terraform.tfstate.lock.info
 terraform.tfstate
 terraform.tfstate.backup
+terraform-output-files/
+*.tfvars
