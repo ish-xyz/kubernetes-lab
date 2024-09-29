@@ -16,9 +16,8 @@ clusterDNS:
 %{ endfor ~}
 cgroupDriver: systemd
 containerRuntimeEndpoint: "unix:///var/run/containerd/containerd.sock"
-resolvConf: /run/systemd/resolve/resolv.conf
 podCIDR: "${pod_cidr}"
-resolvConf: "/etc/resolv.conf"
+resolvConf: /run/systemd/resolve/resolv.conf
 runtimeRequestTimeout: "15m"
 tlsCertFile: "${kube_certs_dir}/kubelet.crt"
 tlsPrivateKeyFile: "${kube_certs_dir}/kubelet.key"
