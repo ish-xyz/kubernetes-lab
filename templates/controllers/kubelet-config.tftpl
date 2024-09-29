@@ -16,6 +16,7 @@ clusterDNS:
 %{ endfor ~}
 cgroupDriver: systemd
 containerRuntimeEndpoint: "unix:///var/run/containerd/containerd.sock"
+resolvConf: /run/systemd/resolve/resolv.conf
 podCIDR: "${pod_cidr}"
 resolvConf: "/etc/resolv.conf"
 runtimeRequestTimeout: "15m"

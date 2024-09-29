@@ -6,7 +6,7 @@ module "ca" {
     C		        = "United Kingdom"
     ST              = "London"
     L		        = "London"
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "admin" {
@@ -20,7 +20,7 @@ module "admin" {
     C		        = "United Kingdom"
     ST              = "London"
     L		        = "London"
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "service-accounts" {
@@ -34,7 +34,7 @@ module "service-accounts" {
     C		        = "United Kingdom"
     ST              = "London"
     L		        = "London"
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "kube-controller-manager" {
@@ -49,7 +49,7 @@ module "kube-controller-manager" {
     ST              = "London"
     L		        = "London"
 
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "kube-scheduler" {
@@ -64,7 +64,7 @@ module "kube-scheduler" {
     ST              = "London"
     L		        = "London"
 
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "kube-apiserver" {
@@ -80,7 +80,8 @@ module "kube-apiserver" {
     L		        = "London"
 
     ip_addresses = [
-        "127.0.0.1"
+        "127.0.0.1",
+        cidrhost(var.service_cidr, 1)
     ]
     dns_names = [
         "kubernetes",
@@ -95,7 +96,7 @@ module "kube-apiserver" {
         "${local.lb_apiserver_address}",
     ]
 
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "etcd-peer" {
@@ -113,7 +114,7 @@ module "etcd-peer" {
     ip_addresses = ["127.0.0.1"]
     dns_names = local.etcd_nodes
 
-    validity_period	= 8760
+    validity_period	= 87660
 
     #     cert_filename = "${path.root}/files/tmpcerts/etcd-client.crt"
     #     key_filename = "${path.root}/files/tmpcerts/etcd-client.key"
@@ -135,7 +136,7 @@ module "etcd-client" {
     ip_addresses = ["127.0.0.1"]
     dns_names = local.etcd_nodes
 
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "controllers-kubelet" {
@@ -154,7 +155,7 @@ module "controllers-kubelet" {
     ip_addresses = ["127.0.0.1"]
     dns_names = [each.value]
 
-    validity_period	= 8760
+    validity_period	= 87660
 }
 
 module "workers-kubelet" {
@@ -173,5 +174,5 @@ module "workers-kubelet" {
     ip_addresses = ["127.0.0.1"]
     dns_names = [each.value]
 
-    validity_period	= 8760
+    validity_period	= 87660
 }

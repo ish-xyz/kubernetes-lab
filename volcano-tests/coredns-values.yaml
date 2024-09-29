@@ -1,0 +1,40 @@
+isClusterService: true
+serviceType: "ClusterIP"
+replicaCount: 2
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+servers:
+- zones:
+  - zone: .
+  port: 53
+  plugins:
+  - name: errors
+  - name: health
+    configBlock: |-
+      lameduck 5s
+  - name: ready
+  - name: kubernetes
+    parameters: cluster.local in-addr.arpa ip6.arpa
+    configBlock: |-
+      pods insecure
+      fallthrough in-addr.arpa ip6.arpa
+      ttl 30
+  - name: prometheus
+    parameters: 0.0.0.0:9153
+  - name: forward
+    parameters: . /etc/resolv.conf
+  - name: cache
+    parameters: 30
+  - name: loop
+  - name: reload
+  - name: loadbalance
+service:
+  clusterIP: "10.32.0.2"
+  annotations:
+    prometheus.io/port: "9153"
+    prometheus.io/scrape: "true"
