@@ -26,21 +26,6 @@ preMigration:
       k8sServiceHost: ${lb_apiserver_address}
       k8sServicePort: 6443
 
-migration:
-
-- key: kube-apiserver
-  systemdUnit: kube-apiserver.service
-  manifest: ${kube_config_dir}/manifests/kube-apiserver.yaml
-  leaderOnly: true
-  httpChecks:
-  - insecure: false
-    url: https://apiserver.kubernetes.local:6443/version
-    ca: ${kube_certs_dir}/ca.crt
-    maxRetries: 30
-    interval: 10
-
-postMigration:
-
 - name: coredns-deploy
   leaderOnly: true
   driver: helm
@@ -48,7 +33,7 @@ postMigration:
     url: https://coredns.github.io/helm
     name: coredns
     releaseName: coredns
-    version: 1.11.3
+    version: 1.33.0
     namespace: "kube-system"
     values:
       isClusterService: true
@@ -63,3 +48,17 @@ postMigration:
       service:
         clusterIP: ${cluster_dns_service_ip}
 
+migration:
+
+- key: kube-apiserver
+  systemdUnit: kube-apiserver.service
+  manifest: ${kube_config_dir}/manifests/kube-apiserver.yaml
+  leaderOnly: true
+  httpChecks:
+  - insecure: false
+    url: https://apiserver.kubernetes.local:6443/version
+    ca: ${kube_certs_dir}/ca.crt
+    maxRetries: 30
+    interval: 10
+
+postMigration: []
