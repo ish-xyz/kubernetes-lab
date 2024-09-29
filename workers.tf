@@ -56,7 +56,7 @@ locals {
     pod_cidr           = var.pod_cidr
     cluster_domain     = var.cluster_domain
     kube_certs_dir     = local.kube_certs_dir
-    cluster_dns_servers = jsonencode(var.cluster_dns_servers)
+    cluster_dns_service_ip = cidrhost(var.service_cidr, 2)
   })
 
   workers_kubeconfig_kubelet = {

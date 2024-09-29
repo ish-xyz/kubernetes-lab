@@ -110,7 +110,7 @@ locals {
     pod_cidr          = var.pod_cidr
     cluster_domain    = var.cluster_domain
     kube_certs_dir    = local.kube_certs_dir
-    cluster_dns_servers = jsonencode(var.cluster_dns_servers)
+    cluster_dns_service_ip = cidrhost(var.service_cidr, 2)
   })
 
   controllers_kube_scheduler_config = templatefile("${path.module}/templates/controllers/kube-scheduler-config.tftpl", {
@@ -125,6 +125,7 @@ locals {
       kube_config_dir     = local.kube_config_dir
       kube_certs_dir      = local.kube_certs_dir
       lb_apiserver_address = local.lb_apiserver_address
+      cluster_dns_service_ip = cidrhost(var.service_cidr, 2)
     })
   }
 
