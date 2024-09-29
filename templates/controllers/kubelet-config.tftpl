@@ -9,7 +9,7 @@ authentication:
     clientCAFile: "${kube_certs_dir}/ca.crt"
 authorization:
   mode: Webhook
-clusterDomain: "${cluster_domain}"
+clusterDomain: "cluster.local"
 cgroupDriver: systemd
 containerRuntimeEndpoint: "unix:///var/run/containerd/containerd.sock"
 podCIDR: "${pod_cidr}"

@@ -54,7 +54,7 @@ locals {
 
   workers_kubelet_config = templatefile("${path.module}/templates/workers/kubelet-config.tftpl", {
     pod_cidr           = var.pod_cidr
-    cluster_domain     = var.cluster_domain
+#    cluster_domain     = var.cluster_domain
     kube_certs_dir     = local.kube_certs_dir
     cluster_dns_service_ip = cidrhost(var.service_cidr, 2)
   })

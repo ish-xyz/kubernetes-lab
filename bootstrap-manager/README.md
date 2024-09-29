@@ -4,4 +4,4 @@
 - pre/post Migration checks support
 - add logging
 - reload systemd daemons at end of the migration?
-
+- URL and Kubectl check add minSuccessful
