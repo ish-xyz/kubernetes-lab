@@ -250,10 +250,13 @@ func (o *Orchestrator) execMigration(cmObj *corev1.ConfigMap) error {
 }
 
 func (o *Orchestrator) updateMigrationStatus(cmObj *corev1.ConfigMap, key, val string) error {
+	patchData := map[string]interface{}{
+		"data": map[string]string{
+			key: val,
+		},
+	}
 
-	cmObj.Data[key] = val
-
-	patchBytes, err := json.Marshal(cmObj)
+	patchBytes, err := json.Marshal(patchData)
 	if err != nil {
 		return err
 	}
