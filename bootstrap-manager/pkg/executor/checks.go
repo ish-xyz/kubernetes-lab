@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (e *Executor) URLCheck(url, caPath string, insecure, isTLS bool, maxRetries, interval int) error {
+func (e *Executor) URLCheck(url, caPath string, insecure, isTLS bool, maxRetries, interval int, clientCert, clientKey string) error {
 
 	var client *http.Client
 
@@ -39,6 +39,14 @@ func (e *Executor) URLCheck(url, caPath string, insecure, isTLS bool, maxRetries
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: insecure,
 			RootCAs:            rootCAs, // Use RootCAs instead of ClientCAs
+		}
+
+		if clientCert != "" && clientKey != "" {
+			cert, err := tls.LoadX509KeyPair(clientCert, clientKey)
+			if err != nil {
+				return fmt.Errorf("error loading client cert/key pair %s %s: %v", clientCert, clientKey, err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 
 		tr := &http.Transport{TLSClientConfig: tlsConfig}
