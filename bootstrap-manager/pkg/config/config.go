@@ -26,7 +26,9 @@ type PackageConfig struct {
 type MigrationConfig struct {
 	Key         string             `yaml:"key" validate:"required"`
 	SystemdUnit string             `yaml:"systemdUnit" validate:"required"`
-	Manifest    string             `yaml:"manifest" validate:"required"`
+	Driver      string             `yaml:"driver" validate:"required,oneof=kubectl helm"`
+	Manifest    string             `yaml:"manifest" validate:"required_if=Driver kubectl"`
+	Chart       *ChartConfig       `yaml:"chart" validate:"required_if=Driver helm"`
 	LeaderOnly  bool               `yaml:"leaderOnly"`
 	HTTPChecks  []*HTTPCheckConfig `yaml:"httpChecks" validate:"dive,required"`
 	PodChecks   []*PodCheckConfig  `yaml:"podChecks" validate:"dive,required"`

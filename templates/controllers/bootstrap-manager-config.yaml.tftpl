@@ -52,8 +52,6 @@ preMigration:
 migration:
 
 - key: kube-apiserver
-  systemdUnit: kube-apiserver.service
-  manifest: ${kube_config_dir}/manifests/kube-apiserver.yaml
   leaderOnly: true
   httpChecks:
   - insecure: false
@@ -61,5 +59,18 @@ migration:
     ca: ${kube_certs_dir}/ca.crt
     maxRetries: 30
     interval: 10
+  systemdUnit: kube-apiserver.service
+  driver: helm
+  chart:
+    url: https://luigizhou.github.io/helm-charts
+    name: kube-apiserver
+    releaseName: kube-apiserver
+    version: 0.1.0
+    namespace: "kube-system"
+    values:
+      apiserverVersion: v1.31.0
+      etcdServers: https://controller-0-mytestcluster:2379,https://controller-1-mytestcluster:2379,https://controller-2-mytestcluster:2379
+      serviceClusterRange: 10.32.0.0/24
+
 
 postMigration: []
