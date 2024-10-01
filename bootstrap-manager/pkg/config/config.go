@@ -55,6 +55,8 @@ type PodCheckConfig struct {
 type HTTPCheckConfig struct {
 	URL        string `yaml:"url" validate:"url,required"`
 	CA         string `yaml:"ca" validate:"filepath"`
+	ClientCert string `yaml:"clientCert" validate:"filepath"`
+	ClientKey  string `yaml:"clientKey" validate:"filepath"`
 	Insecure   bool   `yaml:"insecure"`
 	MaxRetries int    `yaml:"maxRetries" validate:"gt=1,required"`
 	Interval   int    `yaml:"interval" validate:"gt=1,required"`

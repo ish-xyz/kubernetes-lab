@@ -235,6 +235,8 @@ func (o *Orchestrator) execMigration(cmObj *corev1.ConfigMap) error {
 				urlObj.Scheme == "https",
 				check.MaxRetries,
 				check.Interval,
+				check.ClientCert,
+				check.ClientKey,
 			)
 		}
 
