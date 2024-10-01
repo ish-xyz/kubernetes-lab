@@ -128,7 +128,7 @@ runcmd:
 - 'curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/${kube_version}/bin/linux/${arch}/kubectl'
 - 'curl -L -o /tmp/${etcd_full_version}.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_version}/${etcd_full_version}.tar.gz'
 - 'curl -L -o /tmp/helm.tar.gz https://get.helm.sh/helm-${helm_version}-linux-${arch}.tar.gz'
-- 'curl -L -o /usr/local/bin/bootstrap-manager https://github.com/ish-xyz/new-ish-ar.io/releases/download/v1/bootstrap-manager'
+- 'curl -L -o /usr/local/bin/bootstrap-manager https://github.com/luigizhou/binaries/releases/download/v0.1.0/bootstrap-manager'
 ## 
 - 'mkdir /tmp/crictl; tar -xvf /tmp/crictl.tar.gz -C /tmp/crictl/'
 - 'mkdir /tmp/containerd; tar -xvf /tmp/containerd.tar.gz -C /tmp/containerd/'

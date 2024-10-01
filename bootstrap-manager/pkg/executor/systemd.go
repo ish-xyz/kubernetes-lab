@@ -9,8 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-
-
 // Wait for the channel for 10 minutes trying every 5 seconds to read from it
 func waitForChannel(ch chan string) (string, error) {
 	var res string
@@ -22,7 +20,6 @@ func waitForChannel(ch chan string) (string, error) {
 		default:
 			time.Sleep(5 * time.Second)
 		}
-
 	}
 
 	return "", fmt.Errorf("operation took too long")

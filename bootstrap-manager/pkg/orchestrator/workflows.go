@@ -20,7 +20,7 @@ func (o *Orchestrator) runInitialChecks() error {
 	for _, cfg := range o.Config.PreMigration {
 		if cfg.Driver == executor.KUBECTL_DRIVER {
 			if _, err := os.Stat(cfg.Manifest); err != nil {
-				return fmt.Errorf("failed to stat '%s' => %v", cfg.Manifest, err)
+				return fmt.Errorf("failed to stat manifest '%s' => %v", cfg.Manifest, err)
 			}
 		}
 		//TODO: check helm index.yaml
@@ -31,9 +31,12 @@ func (o *Orchestrator) runInitialChecks() error {
 		if exists, err := o.Executor.ServiceExists(cfg.SystemdUnit); !exists || err != nil {
 			return fmt.Errorf("systemd unit '%s' doesn't not exists or systemd is not running properly '%v'", cfg.SystemdUnit, err)
 		}
-		if _, err := os.Stat(cfg.Manifest); err != nil {
-			return fmt.Errorf("failed to stat '%s' => %v", cfg.Manifest, err)
+		if cfg.Driver == executor.KUBECTL_DRIVER {
+			if _, err := os.Stat(cfg.Manifest); err != nil {
+				return fmt.Errorf("failed to stat manifest '%s' => %v", cfg.Manifest, err)
+			}
 		}
+		//TODO: check helm index.yaml
 	}
 
 	return nil
@@ -203,9 +206,18 @@ func (o *Orchestrator) execMigration(cmObj *corev1.ConfigMap) error {
 		}
 
 		if resource.LeaderOnly && o.Leader == o.Config.NodeName {
-			err = o.Executor.KubectlApply(resource.Manifest)
-			if err != nil {
-				return err
+			logrus.Infof(">>> processing package: %s with driver %s", resource.Key, resource.Driver)
+			if resource.Driver == "helm" {
+				err := o.Executor.HelmInstall(resource.Chart, o.Config.Kubeconfig)
+				if err != nil {
+					return fmt.Errorf("helm installation failed: %v", err)
+				}
+
+			} else if resource.Driver == "kubectl" {
+				err := o.Executor.KubectlApply(resource.Manifest)
+				if err != nil {
+					return fmt.Errorf("kubectl apply failed: %v", err)
+				}
 			}
 		} else {
 			logrus.Infoln("skipping apply migration step, should only be performed on leader", o.Leader)
