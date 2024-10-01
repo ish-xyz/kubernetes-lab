@@ -219,12 +219,6 @@ func (o *Orchestrator) execMigration(cmObj *corev1.ConfigMap) error {
 					return fmt.Errorf("kubectl apply failed: %v", err)
 				}
 			}
-			if resource.Manifest != "" {
-				err = o.Executor.KubectlApply(resource.Manifest)
-				if err != nil {
-					return err
-				}
-			}
 		} else {
 			logrus.Infoln("skipping apply migration step, should only be performed on leader", o.Leader)
 		}
